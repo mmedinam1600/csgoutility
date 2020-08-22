@@ -43,6 +43,7 @@ const craw = require('craw');
 async function update (){
     console.log(`[${Date.now()}] Buscando Actualizaciones de CSGO...`);
     const result = await craw("https://blog.counter-strike.net/index.php/category/updates/");
+    //prueba
     let mensaje: object = result.getContent(); //Obtenemos los H2 del HTML
     let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
     //console.log(client.guilds.cache.get('729491131016020103'));
