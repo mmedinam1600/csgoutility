@@ -10,7 +10,6 @@ config(); //carga las variables del sistema
 import {idioma, prefix} from './config'
 import { lang } from './lang'
 import { Estadisticas } from "./Estadisticas";
-//kaka
 
 /**
  * DISCORD.JS
@@ -42,7 +41,7 @@ const parser = new DomParser();
 const craw = require('craw');
 
 async function update (){
-    console.log("Buscando updates de csgo");
+    console.log(`[${Date.now()}] Buscando Actualizaciones de CSGO...`);
     const result = await craw("https://blog.counter-strike.net/index.php/category/updates/");
     let mensaje: object = result.getContent(); //Obtenemos los H2 del HTML
     let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
