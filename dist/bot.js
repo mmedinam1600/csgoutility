@@ -58,7 +58,7 @@ async function update() {
         }
         //console.log(separador[1].substring(6,separador[1].length - 9));
         if (!encontrado) {
-            console.log("Nueva actualizacion!");
+            console.log("Nueva actualizacion! :D");
             let card__actualizacion = new Discord.MessageEmbed()
                 .setColor('#0099ff')
                 .setTitle("Una nueva actualizacion de CSGO acaba de salir!")
