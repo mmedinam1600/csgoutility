@@ -35,8 +35,9 @@ const DomParser = require('dom-parser');
 const parser = new DomParser();
 const craw = require('craw');
 async function update() {
-    console.log("Buscando updates de csgo");
+    console.log(`[${Date.now()}] Buscando Actualizaciones de CSGO...`);
     const result = await craw("https://blog.counter-strike.net/index.php/category/updates/");
+    //prueba
     let mensaje = result.getContent(); //Obtenemos los H2 del HTML
     let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
     //console.log(client.guilds.cache.get('729491131016020103'));
@@ -58,7 +59,7 @@ async function update() {
         }
         //console.log(separador[1].substring(6,separador[1].length - 9));
         if (!encontrado) {
-            console.log("Nueva actualizacion! :D");
+            console.log("Nueva actualizacion!");
             let card__actualizacion = new Discord.MessageEmbed()
                 .setColor('#0099ff')
                 .setTitle("Una nueva actualizacion de CSGO acaba de salir!")
