@@ -34,42 +34,55 @@ const request = require('request');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
 const craw = require('craw');
-async function update() {
-    console.log(`[${Date.now()}] Buscando Actualizaciones de CSGO...`);
-    const result = await craw("https://blog.counter-strike.net/index.php/category/updates/");
-    //prueba
-    let mensaje = result.getContent(); //Obtenemos los H2 del HTML
-    let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
-    //console.log(client.guilds.cache.get('729491131016020103'));
-    for (var i = 0; i < mensaje['h2'].length; i++) {
+async function update(channel) {
+    if (channel === undefined) {
+        console.error("[CSGO-UPDATE] Error al obtener el canal");
+        return;
+    }
+    let language = getLanguage(channel);
+    console.log(`Buscando Actualizaciones de CSGO...`);
+    //Obtenemos los datos de la pagina de CSGO
+    let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
+    //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
+    let mensaje = titulos.getContent();
+    titulos = null;
+    for (let i = 0; i < mensaje['h2'].length; i++) {
         //Obtenemos las fechas
-        let separador = mensaje['h2'][i].trim().split(/ +/g);
+        let separador = mensaje['h2'][i].trim().split(/ +/g); //Arreglo de todo el string
         let fecha = (separador[4].substring(0, separador[4].length - 4));
-        //Consultamos si alguna fecha no existe en la base de datos
-        //console.log(db.getIndex(`/${message.guild?.id}/news`,`${fecha}`));
         let encontrado = false;
-        for (var j = 0; j < db.count(`/535521222784712714/news`); j++) {
-            //console.log(fecha)
-            //console.log(" = ")
-            //console.log( db.getData(`/${message.guild?.id}/news[${j}]`))
+        for (let j = 0; j < db.count(`/${channel.guild.id}/news`); j++) {
             //Si no esta una fecha en la bd
-            if (!fecha.localeCompare(db.getData(`/535521222784712714/news[${j}]`))) {
+            if (!fecha.localeCompare(db.getData(`/${channel.guild.id}/news[${j}]`))) {
                 encontrado = true;
+                break;
             }
         }
-        //console.log(separador[1].substring(6,separador[1].length - 9));
+        //Si no se encontro la fecha en la base entonces es una nueva actualización
         if (!encontrado) {
             console.log("Nueva actualizacion!");
+            await channel.send(`@everyone ${lang_1.lang[language].messages.newUpdate}`);
             let card__actualizacion = new Discord.MessageEmbed()
                 .setColor('#0099ff')
-                .setTitle("Una nueva actualizacion de CSGO acaba de salir!")
+                .setTitle(`${lang_1.lang[language].messages.title_newUpdate} ${fecha}!`)
                 .setURL(separador[1].substring(6, separador[1].length - 9))
-                .setAuthor('CSGO Utility v2.0', 'https://i.imgur.com/ciQJQHK.png')
-                .setDescription('Click en el link de arriba para mas información')
+                .setAuthor(config_1.bot_alias, 'https://i.imgur.com/ciQJQHK.png')
+                .setDescription(lang_1.lang[language].messages.description_newUpdate)
                 .setTimestamp()
                 .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await channel.send(card__actualizacion);
-            db.push(`/535521222784712714/news[]`, fecha, false);
+            //Enviamos el mensaje a discord
+            try {
+                await channel.send({ embed: card__actualizacion })
+                    .then(async (embedMessage) => {
+                    await embedMessage.react('👍');
+                    await embedMessage.react('👎');
+                });
+            }
+            catch (error) {
+                console.error('One of the emojis failed to react');
+            }
+            //Agregamos la nueva fecha en la base
+            db.push(`/${channel.guild.id}/news[]`, fecha, false);
         }
     }
 }
@@ -85,7 +98,8 @@ client.on('ready', () => {
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
     function run() {
-        timers_1.setInterval(update, 15000);
+        let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
+        timers_1.setInterval(update, 15000, channel);
         //console.log(db.getData('/535521222784712714'));
     }
     run();
@@ -139,8 +153,33 @@ client.on("message", (message: Message) => {
 client.on("error", (error) => {
     console.error("Discord client error!", error);
 });
+function getLanguage(message, channel) {
+    var _a, _b;
+    if (message !== undefined) {
+        try {
+            return db.getData(`/${(_a = message.guild) === null || _a === void 0 ? void 0 : _a.id}/config/language`);
+        }
+        catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else if (channel !== undefined) {
+        try {
+            return db.getData(`/${(_b = channel.guild) === null || _b === void 0 ? void 0 : _b.id}/config/language`);
+        }
+        catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else {
+        console.log("No ingreso ningun parametro devolviendo por default eng");
+        return "eng";
+    }
+}
 client.on('message', async (message) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e;
     // This event will run on every single message received, from any channel or DM.
     // It's good practice to ignore other bots. This also makes your bot ignore itself
     // and not get into a spam loop (we call that "botception").
@@ -156,15 +195,6 @@ client.on('message', async (message) => {
     // args = ["Is", "this", "the", "real", "life?"]
     const args = message.content.slice(config_1.prefix.length).trim().split(/ +/g);
     const command = (_a = args === null || args === void 0 ? void 0 : args.shift()) === null || _a === void 0 ? void 0 : _a.toLowerCase();
-    function getLanguage() {
-        var _a;
-        try {
-            return db.getData(`/${(_a = message.guild) === null || _a === void 0 ? void 0 : _a.id}/config/language`);
-        }
-        catch (error) {
-            return console.error(error);
-        }
-    }
     async function usernameToSteamId(platformUserIdentifier, idioma, m) {
         if (!Number.isInteger(Number.parseInt(platformUserIdentifier)) && platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
             m.edit(`${lang_1.lang[idioma].messages.searching.replace("{user}", platformUserIdentifier)}`);
@@ -189,13 +219,7 @@ client.on('message', async (message) => {
     //********************************* COMMANDS *************************************************
     //*********************************************************************************************************************
     if (command === "help") {
-        let idioma;
-        try {
-            idioma = db.getData(`/${(_b = message.guild) === null || _b === void 0 ? void 0 : _b.id}/config/language`);
-        }
-        catch (error) {
-            console.error(error);
-        }
+        let idioma = await getLanguage(message);
         await message.reply(lang_1.lang[idioma].messages.help);
     }
     if (command === "configbot") {
@@ -215,7 +239,7 @@ client.on('message', async (message) => {
     if (command === "start") {
         if (message.author.id !== "310464206598045696")
             return await message.channel.send("Solo el dueño del bot puede ejecutar este comando");
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let headers = {};
         let url = 'https://blog.counter-strike.net/index.php/category/updates/';
         request.get({ headers: headers, url: url, method: 'GET' }, function (err, res, body) {
@@ -243,7 +267,7 @@ client.on('message', async (message) => {
         }
         if (language === "esp" || language === "eng") {
             try {
-                db.push(`/${(_c = message.guild) === null || _c === void 0 ? void 0 : _c.id}/config/language`, language, false);
+                db.push(`/${(_b = message.guild) === null || _b === void 0 ? void 0 : _b.id}/config/language`, language, false);
                 message.reply(lang_1.lang[language].messages.languageMsg);
             }
             catch (error) {
@@ -256,7 +280,7 @@ client.on('message', async (message) => {
         }
     }
     if (command === "stats") {
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang_1.lang[idioma].messages.usage.stats}`);
@@ -300,7 +324,7 @@ client.on('message', async (message) => {
         });
     }
     if (command === "check") {
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang_1.lang[idioma].messages.usage.check}`);
@@ -319,7 +343,7 @@ client.on('message', async (message) => {
         });
     }
     if (command === "vac") {
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang_1.lang[idioma].messages.usage.check}`);
@@ -381,12 +405,12 @@ client.on('message', async (message) => {
             //Consultamos si alguna fecha no existe en la base de datos
             //console.log(db.getIndex(`/${message.guild?.id}/news`,`${fecha}`));
             let encontrado = false;
-            for (var j = 0; j < db.count(`/${(_d = message.guild) === null || _d === void 0 ? void 0 : _d.id}/news`); j++) {
+            for (var j = 0; j < db.count(`/${(_c = message.guild) === null || _c === void 0 ? void 0 : _c.id}/news`); j++) {
                 //console.log(fecha)
                 //console.log(" = ")
                 //console.log( db.getData(`/${message.guild?.id}/news[${j}]`))
                 //Si no esta una fecha en la bd
-                if (!fecha.localeCompare(db.getData(`/${(_e = message.guild) === null || _e === void 0 ? void 0 : _e.id}/news[${j}]`))) {
+                if (!fecha.localeCompare(db.getData(`/${(_d = message.guild) === null || _d === void 0 ? void 0 : _d.id}/news[${j}]`))) {
                     encontrado = true;
                 }
             }
@@ -402,7 +426,7 @@ client.on('message', async (message) => {
                     .setTimestamp()
                     .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
                 await message.channel.send(card__actualizacion);
-                db.push(`/${(_f = message.guild) === null || _f === void 0 ? void 0 : _f.id}/news[]`, fecha, false);
+                db.push(`/${(_e = message.guild) === null || _e === void 0 ? void 0 : _e.id}/news[]`, fecha, false);
             }
         }
         /*

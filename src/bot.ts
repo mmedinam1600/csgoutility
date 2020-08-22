@@ -7,7 +7,7 @@ config(); //carga las variables del sistema
 /**
  * CONFIGURACIONES
  */
-import {idioma, prefix} from './config'
+import {idioma, prefix, bot_alias} from './config'
 import { lang } from './lang'
 import { Estadisticas } from "./Estadisticas";
 
@@ -16,7 +16,7 @@ import { Estadisticas } from "./Estadisticas";
  */
 const Discord = require('discord.js'); /** IMPORTAMOS EL MODULO */
 const client = new Discord.Client(); /** CREAMOS UN CLIENTE PARA EL BOT */
-import { Message, Guild } from 'discord.js'; /** IMPORTAMOS LAS CLASES QUE USAREMOS PARA EL AUTOCOMPLETADO */
+import {Message, Guild, Channel} from 'discord.js'; /** IMPORTAMOS LAS CLASES QUE USAREMOS PARA EL AUTOCOMPLETADO */
 
 /**
  * BASE DE DATOS
@@ -40,43 +40,55 @@ const DomParser = require('dom-parser');
 const parser = new DomParser();
 const craw = require('craw');
 
-async function update (){
-    console.log(`[${Date.now()}] Buscando Actualizaciones de CSGO...`);
-    const result = await craw("https://blog.counter-strike.net/index.php/category/updates/");
-    //prueba
-    let mensaje: object = result.getContent(); //Obtenemos los H2 del HTML
-    let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
-    //console.log(client.guilds.cache.get('729491131016020103'));
-
-    for(var i=0;i<mensaje['h2'].length;i++){
+async function update (channel){
+    if(channel === undefined){
+        console.error("[CSGO-UPDATE] Error al obtener el canal");
+        return;
+    }
+    let language = getLanguage(channel);
+    console.log(`Buscando Actualizaciones de CSGO...`);
+    //Obtenemos los datos de la pagina de CSGO
+    let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
+    //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
+    let mensaje: object = titulos.getContent();
+    titulos = null;
+    for(let i=0;i<mensaje['h2'].length;i++){
         //Obtenemos las fechas
-        let separador: string[] = mensaje['h2'][i].trim().split(/ +/g);
+        let separador: string[] = mensaje['h2'][i].trim().split(/ +/g); //Arreglo de todo el string
         let fecha = (separador[4].substring(0,separador[4].length-4));
-        //Consultamos si alguna fecha no existe en la base de datos
-        //console.log(db.getIndex(`/${message.guild?.id}/news`,`${fecha}`));
         let encontrado = false;
-        for(var j=0;j < db.count(`/535521222784712714/news`);j++){
-            //console.log(fecha)
-            //console.log(" = ")
-            //console.log( db.getData(`/${message.guild?.id}/news[${j}]`))
+        for(let j=0;j < db.count(`/${channel.guild.id}/news`);j++){
             //Si no esta una fecha en la bd
-            if(!fecha.localeCompare(db.getData(`/535521222784712714/news[${j}]`))){
+            if(!fecha.localeCompare(db.getData(`/${channel.guild.id}/news[${j}]`))){
                 encontrado = true;
+                break;
             }
         }
-        //console.log(separador[1].substring(6,separador[1].length - 9));
+        //Si no se encontro la fecha en la base entonces es una nueva actualización
         if(!encontrado) {
             console.log("Nueva actualizacion!");
+            await channel.send(`@everyone ${lang[language].messages.newUpdate}`);
             let card__actualizacion = new Discord.MessageEmbed()
                 .setColor('#0099ff')
-                .setTitle("Una nueva actualizacion de CSGO acaba de salir!")
+                .setTitle(`${lang[language].messages.title_newUpdate} ${fecha}!`)
                 .setURL(separador[1].substring(6, separador[1].length - 9))
-                .setAuthor('CSGO Utility v2.0', 'https://i.imgur.com/ciQJQHK.png')
-                .setDescription('Click en el link de arriba para mas información')
+                .setAuthor(bot_alias, 'https://i.imgur.com/ciQJQHK.png')
+                .setDescription(lang[language].messages.description_newUpdate)
                 .setTimestamp()
                 .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await channel.send(card__actualizacion);
-            db.push(`/535521222784712714/news[]`, fecha,false);
+            //Enviamos el mensaje a discord
+            try{
+                await channel.send({embed: card__actualizacion})
+                    .then(async embedMessage => {
+                        await embedMessage.react('👍')
+                        await embedMessage.react('👎')
+                    });
+            }
+            catch (error){
+                console.error('One of the emojis failed to react');
+            }
+            //Agregamos la nueva fecha en la base
+            db.push(`/${channel.guild.id}/news[]`, fecha,false);
         }
     }
 }
@@ -96,12 +108,11 @@ client.on('ready', () => {
         .catch(console.error);
 
     function run(){
-        setInterval(update, 15000)
+        let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
+        setInterval(update, 15000, channel)
         //console.log(db.getData('/535521222784712714'));
     }
-
     run();
-
 });
 
 client.on("guildCreate", (guild: Guild) => {
@@ -165,6 +176,30 @@ client.on("error", (error: Error) => {
     console.error("Discord client error!", error);
 });
 
+function getLanguage(message?: Message, channel?): string {
+    if(message !== undefined) {
+        try {
+            return db.getData(`/${message.guild?.id}/config/language`);
+        } catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else if(channel !== undefined){
+        try {
+            return db.getData(`/${channel.guild?.id}/config/language`);
+        } catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else{
+        console.log("No ingreso ningun parametro devolviendo por default eng");
+        return "eng";
+    }
+}
+
+
 
 client.on('message', async (message:Message) => {
 
@@ -184,13 +219,6 @@ client.on('message', async (message:Message) => {
     const args: string[] = message.content.slice(prefix.length).trim().split(/ +/g);
     const command: string | undefined = args?.shift()?.toLowerCase();
 
-    function getLanguage() {
-        try {
-            return db.getData(`/${message.guild?.id}/config/language`);
-        } catch (error) {
-            return console.error(error);
-        }
-    }
 
     async function usernameToSteamId(platformUserIdentifier, idioma, m) {
         if( !Number.isInteger(Number.parseInt(platformUserIdentifier)) && platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
@@ -219,12 +247,7 @@ client.on('message', async (message:Message) => {
     //*********************************************************************************************************************
 
     if (command === "help") {
-        let idioma;
-        try {
-            idioma = db.getData(`/${message.guild?.id}/config/language`);
-        } catch (error) {
-            console.error(error);
-        }
+        let idioma = await getLanguage(message);
         await message.reply(lang[idioma].messages.help);
     }
 
@@ -244,7 +267,7 @@ client.on('message', async (message:Message) => {
 
     if(command === "start"){
         if(message.author.id !== "310464206598045696") return await message.channel.send("Solo el dueño del bot puede ejecutar este comando");
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let headers = {
 
         };
@@ -293,7 +316,7 @@ client.on('message', async (message:Message) => {
     }
 
     if(command === "stats") {
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
 
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
@@ -343,7 +366,7 @@ client.on('message', async (message:Message) => {
 
 
     if(command === "check"){
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier) return message.reply(`${lang[idioma].messages.usage.check}`);
 
@@ -365,7 +388,7 @@ client.on('message', async (message:Message) => {
     }
 
     if(command === "vac") {
-        let idioma = await getLanguage();
+        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier) return message.reply(`${lang[idioma].messages.usage.check}`);
 
