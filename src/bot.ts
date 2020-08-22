@@ -10,6 +10,7 @@ config(); //carga las variables del sistema
 import {idioma, prefix} from './config'
 import { lang } from './lang'
 import { Estadisticas } from "./Estadisticas";
+//kaka
 
 /**
  * DISCORD.JS
