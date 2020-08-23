@@ -244,6 +244,7 @@ client.on('message', async (message) => {
                 if (args[1]) {
                     // @ts-ignore
                     db.push(`/Discord_Server[${db.getIndex("/Discord_Server", (_b = message.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/channel_csgo_news`, args[1]);
+                    await message.reply(`De acuerdo, ahora dare mis noticias en ** ${args[1]}**`);
                 }
                 else {
                     await message.reply('**Falto el nombre del canal**\n\nUsage: !config csgo_news_channel (name-channel)\n Ej: !config csgo_news_channel csgo-updates');
