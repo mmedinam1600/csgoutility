@@ -7,7 +7,7 @@ config(); //carga las variables del sistema
 /**
  * CONFIGURACIONES
  */
-import {idioma, prefix, bot_alias} from './config'
+import {idioma, prefix, bot_alias, nameDB} from './config'
 import { lang } from './lang'
 import { Estadisticas } from "./Estadisticas";
 
@@ -23,7 +23,7 @@ import {Message, Guild, Channel} from 'discord.js'; /** IMPORTAMOS LAS CLASES QU
  */
 import { JsonDB } from 'node-json-db';
 import { Config } from 'node-json-db/dist/lib/JsonDBConfig'
-const db = new JsonDB(new Config("GroupsConfig", true, true, '/'));
+const db = new JsonDB(new Config(nameDB, true, true, '/'));
 
 /**
  * COMMAND HANDLER
@@ -46,7 +46,6 @@ async function update (channel){
         return;
     }
     let language = getLanguage(channel);
-    console.log(`Buscando Actualizaciones de CSGO...`);
     //Obtenemos los datos de la pagina de CSGO
     let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
     //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
@@ -57,9 +56,11 @@ async function update (channel){
         let separador: string[] = mensaje['h2'][i].trim().split(/ +/g); //Arreglo de todo el string
         let fecha = (separador[4].substring(0,separador[4].length-4));
         let encontrado = false;
-        for(let j=0;j < db.count(`/${channel.guild.id}/news`);j++){
+        db.count(`/Discord_Server[${db.getIndex("/Discord_Server",channel.guild.id,"GuildID")}]/csgo_news`)
+        for(let j=0;j < db.count(`/Discord_Server[${db.getIndex("/Discord_Server",channel.guild.id,"GuildID")}]/csgo_news`);j++){
             //Si no esta una fecha en la bd
-            if(!fecha.localeCompare(db.getData(`/${channel.guild.id}/news[${j}]`))){
+            db.getData(`/Discord_Server[${db.getIndex("/Discord_Server",channel.guild.id,"GuildID")}]/csgo_news[${j}]`)
+            if(!fecha.localeCompare(db.getData(`/Discord_Server[${db.getIndex("/Discord_Server",channel.guild.id,"GuildID")}]/csgo_news[${j}]`))){
                 encontrado = true;
                 break;
             }
@@ -88,7 +89,7 @@ async function update (channel){
                 console.error('One of the emojis failed to react');
             }
             //Agregamos la nueva fecha en la base
-            db.push(`/${channel.guild.id}/news[]`, fecha,false);
+            db.push(`/Discord_Server[${db.getIndex("/Discord_Server",channel.guild.id,"GuildID")}]/csgo_news[]`, fecha, false)
         }
     }
 }
@@ -108,8 +109,15 @@ client.on('ready', () => {
         .catch(console.error);
 
     function run(){
-        let channel = client.guilds.cache.get('535521222784712714').channels.cache.find(channel => channel.name === 'csgo-updates');
-        setInterval(update, 15000, channel)
+        //Que se ejecute en todos los servidores :D
+        setInterval(async function(){
+            console.log(`Buscando Actualizaciones de CSGO...`);
+            for(let i=0; i < db.count("/Discord_Server");i++){
+                let channel = client.guilds.cache.get(db.getData(`/Discord_Server[${i}]/GuildID`)).channels.cache.find(channel => channel.name === db.getData(`/Discord_Server[${i}]/config/channel_csgo_news`));
+                await update(channel);
+            }
+        }, 15000);
+
         //console.log(db.getData('/535521222784712714'));
     }
     run();
@@ -119,13 +127,23 @@ client.on("guildCreate", (guild: Guild) => {
     // This event triggers when the bot joins a guild.
     console.log(`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`);
 
-    db.push(`/${guild.id}`, {
-        guildName: guild.name,
-        config:{
-            language:"eng",
+    db.push('/Discord_Server[]', {
+        GuildID: guild.id,
+        GuildName: guild.name,
+        GuildAFKChannel: guild.afkChannel,
+        GuildAFKChannelID: guild.afkChannelID,
+        GuildBanner: guild.banner,
+        GuildRegion: guild.region,
+        GuildOwnerID: guild.ownerID,
+        config: {
+            channel_csgo_news: "",
+            language: "eng",
             prefix: "!"
-        }
-    }, false);
+        },
+        csgo_news: [
+
+        ]
+    });
     db.save();
 
     client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, {type: 'PLAYING'})
@@ -136,8 +154,7 @@ client.on("guildCreate", (guild: Guild) => {
 client.on("guildDelete", (guild: Guild) => {
     // this event triggers when the bot is removed from a guild.
     console.log(`I have been removed from: ${guild.name} (id: ${guild.id})`);
-
-    db.delete(`/${guild.id}`);
+    db.delete(`/Discord_Server[${db.getIndex("/Discord_Server",guild.id,"GuildID")}]`);
     db.save();
 
     client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, {type: 'PLAYING'})
@@ -179,7 +196,8 @@ client.on("error", (error: Error) => {
 function getLanguage(message?: Message, channel?): string {
     if(message !== undefined) {
         try {
-            return db.getData(`/${message.guild?.id}/config/language`);
+            // @ts-ignore
+            return db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild?.id,"GuildID")}]/config/language`)
         } catch (error) {
             console.log("Un error ocurrio al obtener el idioma");
             return "eng";
@@ -187,7 +205,7 @@ function getLanguage(message?: Message, channel?): string {
     }
     else if(channel !== undefined){
         try {
-            return db.getData(`/${channel.guild?.id}/config/language`);
+            return db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild?.id,"GuildID")}]/config/language`)
         } catch (error) {
             console.log("Un error ocurrio al obtener el idioma");
             return "eng";
@@ -302,8 +320,9 @@ client.on('message', async (message:Message) => {
         }
         if(language === "esp" || language === "eng"){
             try{
-                db.push(`/${message.guild?.id}/config/language`,language,false);
-                message.reply(lang[language].messages.languageMsg);
+                // @ts-ignore
+                db.push(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild?.id,"GuildID")}]/config/language`, language, false)
+                await message.reply(lang[language].messages.languageMsg);
             } catch (error) {
                 console.error(error);
             }
@@ -450,7 +469,7 @@ client.on('message', async (message:Message) => {
         });
     }
 
-    if(command === "news"){
+    /*if(command === "news"){
         const result = await craw("https://blog.counter-strike.net/index.php/category/updates/");
         let mensaje: object = result.getContent(); //Obtenemos los H2 del HTML
 
@@ -486,7 +505,7 @@ client.on('message', async (message:Message) => {
             }
         }
 
-        /*
+
         let idioma = await getLanguage();
         let url = `http://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid=730&count=3`
         request.get({url: url, method: 'GET'}, function (err, res, body) {
@@ -512,8 +531,8 @@ client.on('message', async (message:Message) => {
                 //     .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
                 message.channel.send(news.appnews.newsitems[0].contents);
             }
-        });*/
-    }
+        });
+    }*/
 });
 
 //let CommandPrueba = require('./commands/prueba');
