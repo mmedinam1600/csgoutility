@@ -95,7 +95,7 @@ client.on('ready', () => {
     console.log(`El bot ha iniciado, con ${client.users.cache.size} usuarios, en ${client.channels.cache.size} canales en ${client.guilds.cache.size} guilds(grupos).`);
     // Example of changing the bot's playing game to something useful. `client.user` is what the
     // docs refer to as the "ClientUser".
-    client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, { type: 'PLAYING' })
+    client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
     function run() {
@@ -130,7 +130,7 @@ client.on("guildCreate", (guild) => {
         csgo_news: []
     });
     db.save();
-    client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, { type: 'PLAYING' })
+    client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
 });
@@ -139,7 +139,7 @@ client.on("guildDelete", (guild) => {
     console.log(`I have been removed from: ${guild.name} (id: ${guild.id})`);
     db.delete(`/Discord_Server[${db.getIndex("/Discord_Server", guild.id, "GuildID")}]`);
     db.save();
-    client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, { type: 'PLAYING' })
+    client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
 });

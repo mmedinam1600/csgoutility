@@ -7,7 +7,7 @@ config(); //carga las variables del sistema
 /**
  * CONFIGURACIONES
  */
-import {idioma, prefix, bot_alias, nameDB} from './config'
+import {idioma, prefix, bot_alias, nameDB, version} from './config'
 import { lang } from './lang'
 import { Estadisticas } from "./Estadisticas";
 
@@ -104,7 +104,7 @@ client.on('ready', () => {
     console.log(`El bot ha iniciado, con ${client.users.cache.size} usuarios, en ${client.channels.cache.size} canales en ${client.guilds.cache.size} guilds(grupos).`);
     // Example of changing the bot's playing game to something useful. `client.user` is what the
     // docs refer to as the "ClientUser".
-    client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, {type: 'PLAYING'})
+    client.user.setActivity(`!help || v${version} | ${client.guilds.cache.size}`, {type: 'PLAYING'})
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
 
@@ -146,7 +146,7 @@ client.on("guildCreate", (guild: Guild) => {
     });
     db.save();
 
-    client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, {type: 'PLAYING'})
+    client.user.setActivity(`!help || v${version} | ${client.guilds.cache.size}`, {type: 'PLAYING'})
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
 });
@@ -157,7 +157,7 @@ client.on("guildDelete", (guild: Guild) => {
     db.delete(`/Discord_Server[${db.getIndex("/Discord_Server",guild.id,"GuildID")}]`);
     db.save();
 
-    client.user.setActivity(`!help || v0.1.2 | ${client.guilds.cache.size}`, {type: 'PLAYING'})
+    client.user.setActivity(`!help || v${version} | ${client.guilds.cache.size}`, {type: 'PLAYING'})
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
 });
