@@ -40,7 +40,6 @@ async function update(channel) {
         return;
     }
     let language = getLanguage(channel);
-    console.log(`Buscando Actualizaciones de CSGO...`);
     //Obtenemos los datos de la pagina de CSGO
     let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
     //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
@@ -102,6 +101,7 @@ client.on('ready', () => {
     function run() {
         //Que se ejecute en todos los servidores :D
         timers_1.setInterval(async function () {
+            console.log(`Buscando Actualizaciones de CSGO...`);
             for (let i = 0; i < db.count("/Discord_Server"); i++) {
                 let channel = client.guilds.cache.get(db.getData(`/Discord_Server[${i}]/GuildID`)).channels.cache.find(channel => channel.name === db.getData(`/Discord_Server[${i}]/config/channel_csgo_news`));
                 await update(channel);
