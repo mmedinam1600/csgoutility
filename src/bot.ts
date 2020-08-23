@@ -268,7 +268,9 @@ client.on('message', async (message:Message) => {
     if (command === "help") {
         await message.reply(lang[idioma].messages.help);
     }
+
     if(command === "config"){
+        console.log("pruebas");
         switch(args[0]){
             case "csgo_news_channel":
                 if(args[1]){
