@@ -195,7 +195,7 @@ function getLanguage(message, channel) {
     }
 }
 client.on('message', async (message) => {
-    var _a, _b;
+    var _a, _b, _c;
     // This event will run on every single message received, from any channel or DM.
     // It's good practice to ignore other bots. This also makes your bot ignore itself
     // and not get into a spam loop (we call that "botception").
@@ -211,6 +211,7 @@ client.on('message', async (message) => {
     // args = ["Is", "this", "the", "real", "life?"]
     const args = message.content.slice(config_1.prefix.length).trim().split(/ +/g);
     const command = (_a = args === null || args === void 0 ? void 0 : args.shift()) === null || _a === void 0 ? void 0 : _a.toLowerCase();
+    let idioma = await getLanguage(message);
     async function usernameToSteamId(platformUserIdentifier, idioma, m) {
         if (!Number.isInteger(Number.parseInt(platformUserIdentifier)) && platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
             m.edit(`${lang_1.lang[idioma].messages.searching.replace("{user}", platformUserIdentifier)}`);
@@ -235,8 +236,22 @@ client.on('message', async (message) => {
     //********************************* COMMANDS *************************************************
     //*********************************************************************************************************************
     if (command === "help") {
-        let idioma = await getLanguage(message);
         await message.reply(lang_1.lang[idioma].messages.help);
+    }
+    if (command === "config") {
+        switch (args[0]) {
+            case "csgo_news_channel":
+                if (args[1]) {
+                    // @ts-ignore
+                    db.push(`/Discord_Server[${db.getIndex("/Discord_Server", (_b = message.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/channel_csgo_news`, args[1]);
+                }
+                else {
+                    await message.reply('**Falto el nombre del canal**\n\nUsage: !config csgo_news_channel (name-channel)\n Ej: !config csgo_news_channel csgo-updates');
+                }
+                break;
+            default:
+                await message.reply('Usage: !config csgo_news_channel (name-channel)\n Ej: !config csgo_news_channel csgo-updates');
+        }
     }
     if (command === "configbot") {
         if (message.author.id !== "310464206598045696")
@@ -255,7 +270,6 @@ client.on('message', async (message) => {
     if (command === "start") {
         if (message.author.id !== "310464206598045696")
             return await message.channel.send("Solo el dueño del bot puede ejecutar este comando");
-        let idioma = await getLanguage(message);
         let headers = {};
         let url = 'https://blog.counter-strike.net/index.php/category/updates/';
         request.get({ headers: headers, url: url, method: 'GET' }, function (err, res, body) {
@@ -284,7 +298,7 @@ client.on('message', async (message) => {
         if (language === "esp" || language === "eng") {
             try {
                 // @ts-ignore
-                db.push(`/Discord_Server[${db.getIndex("/Discord_Server", (_b = message.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/language`, language, false);
+                db.push(`/Discord_Server[${db.getIndex("/Discord_Server", (_c = message.guild) === null || _c === void 0 ? void 0 : _c.id, "GuildID")}]/config/language`, language, false);
                 await message.reply(lang_1.lang[language].messages.languageMsg);
             }
             catch (error) {
@@ -293,11 +307,10 @@ client.on('message', async (message) => {
             //console.log(message.guild.id);
         }
         else {
-            message.reply(`Los idiomas que soporto son:\n 🇲🇽 Español: esp\n 🇺🇸 English: eng`);
+            await message.reply(`Los idiomas que soporto son:\n 🇲🇽 Español: esp\n 🇺🇸 English: eng`);
         }
     }
     if (command === "stats") {
-        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang_1.lang[idioma].messages.usage.stats}`);
@@ -308,11 +321,11 @@ client.on('message', async (message) => {
         };
         let m = await message.channel.send(`${lang_1.lang[idioma].messages.analyzing} ${platformUserIdentifier}`);
         platformUserIdentifier = await usernameToSteamId(platformUserIdentifier, idioma, m);
-        m.edit(`${lang_1.lang[idioma].messages.obtained.replace("{id}", platformUserIdentifier)}`);
+        await m.edit(`${lang_1.lang[idioma].messages.obtained.replace("{id}", platformUserIdentifier)}`);
         let url = `https://public-api.tracker.gg/v2/csgo/standard/profile/${platform}/${platformUserIdentifier}`;
-        request.get({ headers: headers, url: url, method: 'GET' }, function (err, res, body) {
+        request.get({ headers: headers, url: url, method: 'GET' }, async function (err, res, body) {
             if (err) {
-                message.reply(`${lang_1.lang[idioma].messages.error}`);
+                await message.reply(`${lang_1.lang[idioma].messages.error}`);
             }
             else {
                 let stats = JSON.parse(body);
@@ -320,7 +333,7 @@ client.on('message', async (message) => {
                 if ("errors" in stats) {
                     return message.reply(`${stats.errors[0].message}`);
                 }
-                m.edit(`${lang_1.lang[idioma].messages.stats.replace("{user}", stats.data.platformInfo.platformUserHandle)}`);
+                await m.edit(`${lang_1.lang[idioma].messages.stats.replace("{user}", stats.data.platformInfo.platformUserHandle)}`);
                 const exampleEmbed = new Discord.MessageEmbed()
                     .setColor('#0099ff')
                     .setTitle(stats.data.platformInfo.platformUserHandle)
@@ -333,7 +346,7 @@ client.on('message', async (message) => {
                     .setTimestamp()
                     .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
                 //message.channel.send(exampleEmbed);
-                m.edit(exampleEmbed);
+                await m.edit(exampleEmbed);
             }
             //message.reply(`ID: ${stats.data.platformInfo.platformUserId}`);
             //message.reply(`Username: ${stats.data.platformInfo.platformUserHandle}`);
@@ -341,7 +354,6 @@ client.on('message', async (message) => {
         });
     }
     if (command === "check") {
-        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang_1.lang[idioma].messages.usage.check}`);
@@ -360,7 +372,6 @@ client.on('message', async (message) => {
         });
     }
     if (command === "vac") {
-        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang_1.lang[idioma].messages.usage.check}`);

@@ -236,6 +236,7 @@ client.on('message', async (message:Message) => {
     // args = ["Is", "this", "the", "real", "life?"]
     const args: string[] = message.content.slice(prefix.length).trim().split(/ +/g);
     const command: string | undefined = args?.shift()?.toLowerCase();
+    let idioma = await getLanguage(message);
 
 
     async function usernameToSteamId(platformUserIdentifier, idioma, m) {
@@ -265,8 +266,22 @@ client.on('message', async (message:Message) => {
     //*********************************************************************************************************************
 
     if (command === "help") {
-        let idioma = await getLanguage(message);
         await message.reply(lang[idioma].messages.help);
+    }
+    if(command === "config"){
+        switch(args[0]){
+            case "csgo_news_channel":
+                if(args[1]){
+                    // @ts-ignore
+                    db.push(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild?.id,"GuildID")}]/config/channel_csgo_news`, args[1])
+
+                } else {
+                    await message.reply('**Falto el nombre del canal**\n\nUsage: !config csgo_news_channel (name-channel)\n Ej: !config csgo_news_channel csgo-updates')
+                }
+                break;
+            default:
+                await message.reply('Usage: !config csgo_news_channel (name-channel)\n Ej: !config csgo_news_channel csgo-updates')
+        }
     }
 
     if(command === "configbot"){
@@ -285,7 +300,6 @@ client.on('message', async (message:Message) => {
 
     if(command === "start"){
         if(message.author.id !== "310464206598045696") return await message.channel.send("Solo el dueño del bot puede ejecutar este comando");
-        let idioma = await getLanguage(message);
         let headers = {
 
         };
@@ -329,14 +343,12 @@ client.on('message', async (message:Message) => {
             //console.log(message.guild.id);
         }
         else{
-            message.reply(`Los idiomas que soporto son:\n 🇲🇽 Español: esp\n 🇺🇸 English: eng`);
+           await message.reply(`Los idiomas que soporto son:\n 🇲🇽 Español: esp\n 🇺🇸 English: eng`);
         }
 
     }
 
     if(command === "stats") {
-        let idioma = await getLanguage(message);
-
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier)
             return message.reply(`${lang[idioma].messages.usage.stats}`);
@@ -350,11 +362,11 @@ client.on('message', async (message:Message) => {
 
         platformUserIdentifier =  await usernameToSteamId(platformUserIdentifier, idioma, m)
 
-        m.edit(`${lang[idioma].messages.obtained.replace("{id}", platformUserIdentifier)}`);
+        await m.edit(`${lang[idioma].messages.obtained.replace("{id}", platformUserIdentifier)}`);
         let url = `https://public-api.tracker.gg/v2/csgo/standard/profile/${platform}/${platformUserIdentifier}`;
-        request.get({headers: headers, url: url, method: 'GET'} , function (err,res,body) {
+        request.get({headers: headers, url: url, method: 'GET'} , async function (err,res,body) {
             if(err){
-                message.reply(`${lang[idioma].messages.error}`);
+                await message.reply(`${lang[idioma].messages.error}`);
             }
             else {
                 let stats = JSON.parse(body);
@@ -362,7 +374,7 @@ client.on('message', async (message:Message) => {
                 if("errors" in stats){
                     return message.reply(`${stats.errors[0].message}`);
                 }
-                m.edit(`${lang[idioma].messages.stats.replace("{user}", stats.data.platformInfo.platformUserHandle)}`);
+                await m.edit(`${lang[idioma].messages.stats.replace("{user}", stats.data.platformInfo.platformUserHandle)}`);
                 const exampleEmbed = new Discord.MessageEmbed()
                     .setColor('#0099ff')
                     .setTitle(stats.data.platformInfo.platformUserHandle)
@@ -375,7 +387,7 @@ client.on('message', async (message:Message) => {
                     .setTimestamp()
                     .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
                 //message.channel.send(exampleEmbed);
-                m.edit(exampleEmbed);
+                await m.edit(exampleEmbed);
             }
             //message.reply(`ID: ${stats.data.platformInfo.platformUserId}`);
             //message.reply(`Username: ${stats.data.platformInfo.platformUserHandle}`);
@@ -385,7 +397,6 @@ client.on('message', async (message:Message) => {
 
 
     if(command === "check"){
-        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier) return message.reply(`${lang[idioma].messages.usage.check}`);
 
@@ -407,7 +418,6 @@ client.on('message', async (message:Message) => {
     }
 
     if(command === "vac") {
-        let idioma = await getLanguage(message);
         let platformUserIdentifier = args[0];
         if (!platformUserIdentifier) return message.reply(`${lang[idioma].messages.usage.check}`);
 
@@ -429,38 +439,31 @@ client.on('message', async (message:Message) => {
                     .setURL('https://steamcommunity.com/profiles/' + vacBans.players[0].SteamId)
                     .setAuthor('CSGO Utility v2.0', 'https://steamcommunity.com/profiles/' + vacBans.players[0].SteamId)
                     .setDescription(lang[idioma].messages.statsTitle)
-                    .addFields(
-                        {
+                    .addFields({
                             name: "Numero de baneos de VAC:",
                             value: vacBans.players[0].NumberOfVACBans,
                             inline: true
-                        },
-                        {
+                        }, {
                             name: "Numero de juegos baneados",
                             value: vacBans.players[0].NumberOfGameBans,
                             inline: true
-                        },
-                        {
+                        }, {
                             name: "Baneo de la comunidad:",
                             value: vacBans.players[0].CommunityBanned,
                             inline: true
-                        },
-                        {
+                        }, {
                             name: "Baneo de VAC:",
                             value: vacBans.players[0].VACBanned,
                             inline: true
-                        },
-                        {
+                        }, {
                             name: "Baneo del mercado de la comunidad:",
                             value: vacBans.players[0].EconomyBan,
                             inline: true
-                        },
-                        {
+                        }, {
                             name: "Dias del ultimo baneo:",
                             value: vacBans.players[0].DaysSinceLastBan,
                             inline: true
-                        }
-                    )
+                        })
                     //.setImage('https://i.imgur.com/wSTFkRM.png')
                     .setTimestamp()
                     .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
