@@ -28,63 +28,85 @@ const db = new node_json_db_1.JsonDB(new JsonDBConfig_1.Config(config_1.nameDB, 
 const command_handler_1 = require("./command_handler");
 const timers_1 = require("timers"); /** IMPORTAMOS LA LIBRERIA */
 const commandHandler = new command_handler_1.CommandHandler(`${config_1.prefix}`); /** CONFIGURAMOS EL PREFIX DE NUESTROS COMANDOS */
+/**
+ * Beautiful-Dom
+ */
+const BeautifulDom = require('beautiful-dom');
 /** RANDOM */
 const requestHTML = require('request-promise');
 const request = require('request');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
 const craw = require('craw');
-async function update(channel) {
-    if (channel === undefined) {
-        console.error("[CSGO-UPDATE] Error al obtener el canal");
-        return;
-    }
-    let language = getLanguage(channel);
+async function checkUpdate() {
     //Obtenemos los datos de la pagina de CSGO
     let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
     //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
     let mensaje = titulos.getContent();
     titulos = null;
-    for (let i = 0; i < mensaje['h2'].length; i++) {
-        //Obtenemos las fechas
-        let separador = mensaje['h2'][i].trim().split(/ +/g); //Arreglo de todo el string
-        let fecha = (separador[4].substring(0, separador[4].length - 4));
-        let encontrado = false;
-        db.count(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild.id, "GuildID")}]/csgo_news`);
-        for (let j = 0; j < db.count(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild.id, "GuildID")}]/csgo_news`); j++) {
-            //Si no esta una fecha en la bd
-            db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild.id, "GuildID")}]/csgo_news[${j}]`);
-            if (!fecha.localeCompare(db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild.id, "GuildID")}]/csgo_news[${j}]`))) {
-                encontrado = true;
-                break;
-            }
-        }
-        //Si no se encontro la fecha en la base entonces es una nueva actualización
-        if (!encontrado) {
-            console.log("Nueva actualizacion!");
-            await channel.send(`@everyone ${lang_1.lang[language].messages.newUpdate}`);
-            let card__actualizacion = new Discord.MessageEmbed()
-                .setColor('#0099ff')
-                .setTitle(`${lang_1.lang[language].messages.title_newUpdate} ${fecha}!`)
-                .setURL(separador[1].substring(6, separador[1].length - 9))
-                .setAuthor(config_1.bot_alias, 'https://i.imgur.com/ciQJQHK.png')
-                .setDescription(lang_1.lang[language].messages.description_newUpdate)
-                .setTimestamp()
-                .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            //Enviamos el mensaje a discord
-            try {
-                await channel.send({ embed: card__actualizacion })
-                    .then(async (embedMessage) => {
-                    await embedMessage.react('👍');
-                    await embedMessage.react('👎');
-                });
-            }
-            catch (error) {
-                console.error('One of the emojis failed to react');
-            }
-            //Agregamos la nueva fecha en la base
-            db.push(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild.id, "GuildID")}]/csgo_news[]`, fecha, false);
-        }
+    let separador = mensaje['h2'][0].trim().split(/ +/g); //Obtenemos una lista de las palabras que tiene h2
+    let fecha = (separador[4].substring(0, separador[4].length - 4)); //Obtenemos la fecha de la ultima actualización
+    if (fecha.localeCompare(db.getData(`/csgo_news`))) {
+        console.log("Nueva actualizacion!");
+        //Agregamos la nueva fecha en la base
+        db.push(`/csgo_news`, fecha, false);
+        //Obtenemos el html de la pagina
+        let html = await requestHTML.get(`https://blog.counter-strike.net/index.php/category/updates/`)
+            .catch(() => {
+            console.error(`${lang_1.lang[config_1.idioma].messages.errorID}`);
+            return {
+                "isNew": false
+            };
+        });
+        //Lo transformamos a dom para poder manejarlo
+        const dom = new BeautifulDom(html);
+        //Obtenemos los parrafos para obtener la descripción
+        let paragraphNodes = dom.getElementsByTagName('p');
+        //Obetenemos los titulos para obtener la fecha y el nombre
+        let h2Nodes = dom.getElementsByTagName('h2');
+        const dom2 = new BeautifulDom(h2Nodes[0].innerHTML);
+        let link = dom2.getElementsByTagName('a');
+        link = link[0].getAttribute('href');
+        let date = h2Nodes[0].innerText.substring(18, h2Nodes[0].innerText.length);
+        let description = paragraphNodes[1].innerText;
+        //console.log(description);
+        description = description.replace(/&#8211;/g, '\n-');
+        return {
+            "isNew": true,
+            "link": link,
+            "description": description,
+            "date": date
+        };
+    }
+    else {
+        return {
+            "isNew": false
+        };
+    }
+}
+async function sendUpdate(channel, update) {
+    if (channel === undefined)
+        return console.error("[CSGO-UPDATE] Error al obtener el canal, no lo han configurado");
+    let language = getLanguage(channel);
+    await channel.send(`@everyone ${lang_1.lang[language].messages.newUpdate}`);
+    let card__actualizacion = new Discord.MessageEmbed()
+        .setColor('#0099ff')
+        .setTitle(`${lang_1.lang[language].messages.title_newUpdate} ${update.date}!`)
+        .setURL(update.link)
+        .setAuthor(config_1.bot_alias, 'https://i.imgur.com/ciQJQHK.png')
+        .setDescription(update.description)
+        .setTimestamp()
+        .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
+    //Enviamos el mensaje a discord
+    try {
+        await channel.send({ embed: card__actualizacion })
+            .then(async (embedMessage) => {
+            await embedMessage.react('👍');
+            await embedMessage.react('👎');
+        });
+    }
+    catch (error) {
+        console.error('One of the emojis failed to react');
     }
 }
 /**
@@ -98,15 +120,24 @@ client.on('ready', () => {
     client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
         .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
         .catch(console.error);
+    if (!db.exists('/csgo_news')) {
+        db.push('/csgo_news', "", true);
+    }
     function run() {
         //Que se ejecute en todos los servidores :D
         timers_1.setInterval(async function () {
             console.log(`Buscando Actualizaciones de CSGO...`);
-            for (let i = 0; i < db.count("/Discord_Server"); i++) {
-                let channel = client.guilds.cache.get(db.getData(`/Discord_Server[${i}]/GuildID`)).channels.cache.find(channel => channel.name === db.getData(`/Discord_Server[${i}]/config/channel_csgo_news`));
-                await update(channel);
+            let update = await checkUpdate();
+            if (update["isNew"]) { //Si hay actualizacion enviar un mensaje a todos los servers
+                for (let i = 0; i < db.count("/Discord_Server"); i++) {
+                    let channel = client.guilds.cache.get(db.getData(`/Discord_Server[${i}]/GuildID`)).channels.cache.find(channel => channel.name === db.getData(`/Discord_Server[${i}]/config/channel_csgo_news`));
+                    await sendUpdate(channel, update);
+                }
             }
-        }, 15000);
+            else {
+                console.log("No hay actualizacion este momento");
+            }
+        }, 1500);
         //console.log(db.getData('/535521222784712714'));
     }
     run();
@@ -126,8 +157,7 @@ client.on("guildCreate", (guild) => {
             channel_csgo_news: "",
             language: "eng",
             prefix: "!"
-        },
-        csgo_news: []
+        }
     });
     db.save();
     client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
@@ -239,7 +269,6 @@ client.on('message', async (message) => {
         await message.reply(lang_1.lang[idioma].messages.help);
     }
     if (command === "config") {
-        console.log("pruebas");
         switch (args[0]) {
             case "csgo_news_channel":
                 if (args[1]) {
