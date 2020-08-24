@@ -137,7 +137,7 @@ client.on('ready', () => {
             else {
                 console.log("No hay actualizacion este momento");
             }
-        }, 1500);
+        }, 15000);
         //console.log(db.getData('/535521222784712714'));
     }
     run();
