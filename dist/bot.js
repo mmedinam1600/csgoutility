@@ -68,9 +68,33 @@ async function checkUpdate() {
         let link = dom2.getElementsByTagName('a');
         link = link[0].getAttribute('href');
         let date = h2Nodes[0].innerText.substring(18, h2Nodes[0].innerText.length);
-        let description = paragraphNodes[1].innerText;
         //console.log(description);
-        description = description.replace(/&#8211;/g, '\n-');
+        //console.log(paragraphNodes)
+        let numberOfParagraph = 0;
+        for (let i = 1; i < paragraphNodes.length; i++) {
+            if (paragraphNodes[i].getAttribute('class') === "post_date") {
+                //console.log("Aqui hay fecha");
+                break;
+            }
+            numberOfParagraph++;
+            //console.log(numberOfParagraph);
+        }
+        let description = "";
+        for (let i = 1; i <= numberOfParagraph; i++) {
+            if (!paragraphNodes[i].innerText.match(/&#8211;/g)) {
+                //description = description.replace(/-/g, '\n-')
+                description = description + paragraphNodes[i].innerText.replace(/-/g, '\n- ');
+                description = description.concat("\n\n");
+                continue;
+            }
+            description = description + paragraphNodes[i].innerText.replace(/&#8211;/g, '\n-');
+            description = description.concat("\n\n");
+        }
+        //console.log(description)
+        if (description.length >= 2045) {
+            description = description.substring(0, 2045).concat("...");
+        }
+        //console.log(description)
         return {
             "isNew": true,
             "link": link,
@@ -137,7 +161,7 @@ client.on('ready', () => {
             else {
                 console.log("No hay actualizacion este momento");
             }
-        }, 15000);
+        }, 1500);
         //console.log(db.getData('/535521222784712714'));
     }
     run();
