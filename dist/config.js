@@ -5,5 +5,5 @@ exports.prefix = "!";
 exports.idioma = "eng"; //eng or esp
 exports.bot_alias = "CSGO Utility v2.0";
 exports.nameDB = "DB_SERVERS";
-exports.version = "2.0.0";
+exports.version = "2.0.1";
 //# sourceMappingURL=config.js.map
