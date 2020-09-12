@@ -7,15 +7,15 @@ config(); //carga las variables del sistema
 /**
  * CONFIGURACIONES
  */
-import {idioma, prefix, bot_alias, nameDB, version} from './config'
+import {idioma, bot_alias, nameDB, version} from './config'
 import { lang } from './lang'
 import { Estadisticas } from "./Estadisticas";
 
 /**
  * DISCORD.JS
  */
-const Discord = require('discord.js'); /** IMPORTAMOS EL MODULO */
-const client = new Discord.Client(); /** CREAMOS UN CLIENTE PARA EL BOT */
+export const Discord = require('discord.js'); /** IMPORTAMOS EL MODULO */
+export const client = new Discord.Client(); /** CREAMOS UN CLIENTE PARA EL BOT */
 import {Message, Guild, Channel} from 'discord.js'; /** IMPORTAMOS LAS CLASES QUE USAREMOS PARA EL AUTOCOMPLETADO */
 
 /**
@@ -23,14 +23,14 @@ import {Message, Guild, Channel} from 'discord.js'; /** IMPORTAMOS LAS CLASES QU
  */
 import { JsonDB } from 'node-json-db';
 import { Config } from 'node-json-db/dist/lib/JsonDBConfig'
-const db = new JsonDB(new Config(nameDB, true, true, '/'));
+export const db = new JsonDB(new Config(nameDB, true, true, '/'));
 
 /**
  * COMMAND HANDLER
  */
 import { CommandHandler } from "./command_handler";
 import {setInterval} from "timers"; /** IMPORTAMOS LA LIBRERIA */
-const commandHandler = new CommandHandler(`${prefix}`); /** CONFIGURAMOS EL PREFIX DE NUESTROS COMANDOS */
+//const commandHandler = new CommandHandler(`${prefix}`); /** CONFIGURAMOS EL PREFIX DE NUESTROS COMANDOS */
 
 /**
  * Beautiful-Dom
@@ -43,182 +43,27 @@ const requestHTML = require('request-promise');
 const request = require('request');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
-const craw = require('craw');
 
-async function checkUpdate(): Promise<object> {
-    //Obtenemos los datos de la pagina de CSGO
-    let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
-    //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
-    let mensaje: object = titulos.getContent();
-    titulos = null;
-    let separador: string[] = mensaje['h2'][0].trim().split(/ +/g); //Obtenemos una lista de las palabras que tiene h2
-    let fecha = (separador[4].substring(0,separador[4].length-4)); //Obtenemos la fecha de la ultima actualización
-    if(fecha.localeCompare(db.getData(`/csgo_news`))){
-        console.log("Nueva actualizacion!");
-        //Agregamos la nueva fecha en la base
-        db.push(`/csgo_news`, fecha, false)
-
-        //Obtenemos el html de la pagina
-        let html = await requestHTML.get(`https://blog.counter-strike.net/index.php/category/updates/`)
-            .catch(() => {
-                console.error(`${lang[idioma].messages.errorID}`);
-                return {
-                    "isNew": false
-                }
-            });
-        //Lo transformamos a dom para poder manejarlo
-        const dom = new BeautifulDom(html);
-        //Obtenemos los parrafos para obtener la descripción
-        let paragraphNodes = dom.getElementsByTagName('p');
-        //Obetenemos los titulos para obtener la fecha y el nombre
-        let h2Nodes = dom.getElementsByTagName('h2');
-        const dom2 = new BeautifulDom(h2Nodes[0].innerHTML);
-        let link = dom2.getElementsByTagName('a');
-        link = link[0].getAttribute('href');
-        let date =h2Nodes[0].innerText.substring(18, h2Nodes[0].innerText.length);
-        //console.log(description);
-        //console.log(paragraphNodes)
-        let numberOfParagraph = 0;
-        for(let i = 1;i<paragraphNodes.length;i++) {
-            if(paragraphNodes[i].getAttribute('class') === "post_date"){
-                //console.log("Aqui hay fecha");
-                break;
-            }
-            numberOfParagraph++;
-            //console.log(numberOfParagraph);
-        }
-        let description: string = "";
-        for(let i=1;i<=numberOfParagraph;i++){
-            if(!paragraphNodes[i].innerText.match(/&#8211;/g)){
-                //description = description.replace(/-/g, '\n-')
-                description = description + paragraphNodes[i].innerText.replace(/-/g, '\n- ');
-                description = description.concat("\n\n");
-                continue;
-            }
-            description = description + paragraphNodes[i].innerText.replace(/&#8211;/g, '\n-');
-            description = description.concat("\n\n");
-        }
-        //console.log(description)
-        if(description.length >= 2045){
-            description = description.substring(0,2045).concat("...")
-        }
-        //console.log(description)
-        return {
-            "isNew": true,
-            "link": link,
-            "description": description,
-            "date": date
-        }
-    }
-    else{
-        return {
-            "isNew": false
-        }
-    }
-}
-
-async function sendUpdate (channel, update){
-    if(channel === undefined) return console.error("[CSGO-UPDATE] Error al obtener el canal, no lo han configurado");
-    let language = getLanguage(channel);
-
-    await channel.send(`@everyone ${lang[language].messages.newUpdate}`);
-    let card__actualizacion = new Discord.MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`${lang[language].messages.title_newUpdate} ${update.date}!`)
-        .setURL(update.link)
-        .setAuthor(bot_alias, 'https://i.imgur.com/ciQJQHK.png')
-        .setDescription(update.description)
-        .setTimestamp()
-        .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-    //Enviamos el mensaje a discord
-    try{
-        await channel.send({embed: card__actualizacion})
-            .then(async embedMessage => {
-                await embedMessage.react('👍')
-                await embedMessage.react('👎')
-            });
-    }
-    catch (error){
-        console.error('One of the emojis failed to react');
-    }
-}
-
+/** CHECK UPDATE */
+import { checkUpdate, sendUpdate } from "./modules/updates";
+import { getLanguage } from "./lang";
 
 
 /**
  * EVENTOS
  */
-client.on('ready', () => {
-    // This event will run if the bot starts, and logs in, successfully.
-    console.log(`El bot ha iniciado, con ${client.users.cache.size} usuarios, en ${client.channels.cache.size} canales en ${client.guilds.cache.size} guilds(grupos).`);
-    // Example of changing the bot's playing game to something useful. `client.user` is what the
-    // docs refer to as the "ClientUser".
-    client.user.setActivity(`!help || v${version} | ${client.guilds.cache.size}`, {type: 'PLAYING'})
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
-        .catch(console.error);
-    if(!db.exists('/csgo_news')){
-        db.push('/csgo_news', "", true)
-    }
+import { onReady } from "./modules/events/ready";
+import { onGuildCreate } from "./modules/events/guildCreate";
+import { onGuildDelete } from "./modules/events/guildDelete";
+import { onError } from "./modules/events/error";
 
-    function run(){
-        //Que se ejecute en todos los servidores :D
-        setInterval(async function(){
-            console.log(`Buscando Actualizaciones de CSGO...`);
-            let update = await checkUpdate();
-            if(update["isNew"]){ //Si hay actualizacion enviar un mensaje a todos los servers
-                for(let i=0; i < db.count("/Discord_Server");i++){
-                    let channel = client.guilds.cache.get(db.getData(`/Discord_Server[${i}]/GuildID`)).channels.cache.find(channel => channel.name === db.getData(`/Discord_Server[${i}]/config/channel_csgo_news`));
-                    await sendUpdate(channel, update);
-                }
-            } else {
-                console.log("No hay actualizacion este momento");
-            }
-        }, 1500);
+client.on("ready", onReady);
+client.on("guildCreate", onGuildCreate);
+client.on("guildDelete", onGuildDelete);
+client.on("error", onError);
 
-        //console.log(db.getData('/535521222784712714'));
-    }
-    run();
-});
-
-client.on("guildCreate", (guild: Guild) => {
-    // This event triggers when the bot joins a guild.
-    console.log(`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`);
-
-
-    db.push('/Discord_Server[]', {
-        GuildID: guild.id,
-        GuildName: guild.name,
-        GuildAFKChannel: guild.afkChannel,
-        GuildAFKChannelID: guild.afkChannelID,
-        GuildBanner: guild.banner,
-        GuildRegion: guild.region,
-        GuildOwnerID: guild.ownerID,
-        config: {
-            channel_csgo_news: "",
-            language: "eng",
-            prefix: "!"
-        }
-    });
-    db.save();
-
-    client.user.setActivity(`!help || v${version} | ${client.guilds.cache.size}`, {type: 'PLAYING'})
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
-        .catch(console.error);
-});
-
-client.on("guildDelete", (guild: Guild) => {
-    // this event triggers when the bot is removed from a guild.
-    console.log(`I have been removed from: ${guild.name} (id: ${guild.id})`);
-    db.delete(`/Discord_Server[${db.getIndex("/Discord_Server",guild.id,"GuildID")}]`);
-    db.save();
-
-    client.user.setActivity(`!help || v${version} | ${client.guilds.cache.size}`, {type: 'PLAYING'})
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
-        .catch(console.error);
-});
-
-
-/*client.on("guildMemberAdd", member => {
+/*
+client.on("guildMemberAdd", member => {
     // Le enviamos el mensaje de bienvenida
     const embed = new Discord.RichEmbed()
         .setTitle("¡Bienvenid@ al servidor!")
@@ -230,48 +75,16 @@ client.on("guildDelete", (guild: Guild) => {
             "https://i.imgur.com/cCeIJhL.png"
         );
     member.send(embed);
-
     /!* Le damos el rol de Académico *!/
     let guild = client.guilds.get("531116820669661185");
     let role = guild.roles.get("601472312524537895");
     member.addRole(role).catch(console.error);
 });*/
 
-
-
 /*
 client.on("message", (message: Message) => {
     commandHandler.handleMessage(message);
 });*/
-
-client.on("error", (error: Error) => {
-    console.error("Discord client error!", error);
-});
-
-function getLanguage(message?: Message, channel?): string {
-    if(message !== undefined) {
-        try {
-            // @ts-ignore
-            return db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild?.id,"GuildID")}]/config/language`)
-        } catch (error) {
-            console.log("Un error ocurrio al obtener el idioma");
-            return "eng";
-        }
-    }
-    else if(channel !== undefined){
-        try {
-            return db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild?.id,"GuildID")}]/config/language`)
-        } catch (error) {
-            console.log("Un error ocurrio al obtener el idioma");
-            return "eng";
-        }
-    }
-    else{
-        console.log("No ingreso ningun parametro devolviendo por default eng");
-        return "eng";
-    }
-}
-
 
 
 client.on('message', async (message:Message) => {
@@ -283,6 +96,8 @@ client.on('message', async (message:Message) => {
 
     // Also good practice to ignore any message that does not start with our prefix,
     // which is set in the configuration file.
+    if(message.guild === null || message.guild === undefined) return;
+    let prefix = db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild.id,"GuildID")}]/config/prefix`)
     if (!message.content.startsWith(`${prefix}`)) return;
 
     // Here we separate our "command" name, and our "arguments" for the command.
@@ -292,7 +107,6 @@ client.on('message', async (message:Message) => {
     const args: string[] = message.content.slice(prefix.length).trim().split(/ +/g);
     const command: string | undefined = args?.shift()?.toLowerCase();
     let idioma = await getLanguage(message);
-
 
     async function usernameToSteamId(platformUserIdentifier, idioma, m) {
         if( !Number.isInteger(Number.parseInt(platformUserIdentifier)) && platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
@@ -314,7 +128,6 @@ client.on('message', async (message:Message) => {
         }
         return platformUserIdentifier;
     }
-
 
     //*********************************************************************************************************************
     //********************************* COMMANDS *************************************************

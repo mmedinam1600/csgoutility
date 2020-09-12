@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.db = exports.client = exports.Discord = void 0;
 /**
  *  VARIABLES GLOBALES
  */
@@ -14,20 +15,15 @@ const Estadisticas_1 = require("./Estadisticas");
 /**
  * DISCORD.JS
  */
-const Discord = require('discord.js'); /** IMPORTAMOS EL MODULO */
-const client = new Discord.Client(); /** CREAMOS UN CLIENTE PARA EL BOT */
+exports.Discord = require('discord.js'); /** IMPORTAMOS EL MODULO */
+exports.client = new exports.Discord.Client(); /** CREAMOS UN CLIENTE PARA EL BOT */
 /**
  * BASE DE DATOS
  */
 const node_json_db_1 = require("node-json-db");
 const JsonDBConfig_1 = require("node-json-db/dist/lib/JsonDBConfig");
-const db = new node_json_db_1.JsonDB(new JsonDBConfig_1.Config(config_1.nameDB, true, true, '/'));
-/**
- * COMMAND HANDLER
- */
-const command_handler_1 = require("./command_handler");
-const timers_1 = require("timers"); /** IMPORTAMOS LA LIBRERIA */
-const commandHandler = new command_handler_1.CommandHandler(`${config_1.prefix}`); /** CONFIGURAMOS EL PREFIX DE NUESTROS COMANDOS */
+exports.db = new node_json_db_1.JsonDB(new JsonDBConfig_1.Config(config_1.nameDB, true, true, '/'));
+//const commandHandler = new CommandHandler(`${prefix}`); /** CONFIGURAMOS EL PREFIX DE NUESTROS COMANDOS */
 /**
  * Beautiful-Dom
  */
@@ -37,167 +33,20 @@ const requestHTML = require('request-promise');
 const request = require('request');
 const DomParser = require('dom-parser');
 const parser = new DomParser();
-const craw = require('craw');
-async function checkUpdate() {
-    //Obtenemos los datos de la pagina de CSGO
-    let titulos = await craw("https://blog.counter-strike.net/index.php/category/updates/");
-    //Obtenemos Todos los H1,H2,H3,H4,H5 de la pagina
-    let mensaje = titulos.getContent();
-    titulos = null;
-    let separador = mensaje['h2'][0].trim().split(/ +/g); //Obtenemos una lista de las palabras que tiene h2
-    let fecha = (separador[4].substring(0, separador[4].length - 4)); //Obtenemos la fecha de la ultima actualización
-    if (fecha.localeCompare(db.getData(`/csgo_news`))) {
-        console.log("Nueva actualizacion!");
-        //Agregamos la nueva fecha en la base
-        db.push(`/csgo_news`, fecha, false);
-        //Obtenemos el html de la pagina
-        let html = await requestHTML.get(`https://blog.counter-strike.net/index.php/category/updates/`)
-            .catch(() => {
-            console.error(`${lang_1.lang[config_1.idioma].messages.errorID}`);
-            return {
-                "isNew": false
-            };
-        });
-        //Lo transformamos a dom para poder manejarlo
-        const dom = new BeautifulDom(html);
-        //Obtenemos los parrafos para obtener la descripción
-        let paragraphNodes = dom.getElementsByTagName('p');
-        //Obetenemos los titulos para obtener la fecha y el nombre
-        let h2Nodes = dom.getElementsByTagName('h2');
-        const dom2 = new BeautifulDom(h2Nodes[0].innerHTML);
-        let link = dom2.getElementsByTagName('a');
-        link = link[0].getAttribute('href');
-        let date = h2Nodes[0].innerText.substring(18, h2Nodes[0].innerText.length);
-        //console.log(description);
-        //console.log(paragraphNodes)
-        let numberOfParagraph = 0;
-        for (let i = 1; i < paragraphNodes.length; i++) {
-            if (paragraphNodes[i].getAttribute('class') === "post_date") {
-                //console.log("Aqui hay fecha");
-                break;
-            }
-            numberOfParagraph++;
-            //console.log(numberOfParagraph);
-        }
-        let description = "";
-        for (let i = 1; i <= numberOfParagraph; i++) {
-            if (!paragraphNodes[i].innerText.match(/&#8211;/g)) {
-                //description = description.replace(/-/g, '\n-')
-                description = description + paragraphNodes[i].innerText.replace(/-/g, '\n- ');
-                description = description.concat("\n\n");
-                continue;
-            }
-            description = description + paragraphNodes[i].innerText.replace(/&#8211;/g, '\n-');
-            description = description.concat("\n\n");
-        }
-        //console.log(description)
-        if (description.length >= 2045) {
-            description = description.substring(0, 2045).concat("...");
-        }
-        //console.log(description)
-        return {
-            "isNew": true,
-            "link": link,
-            "description": description,
-            "date": date
-        };
-    }
-    else {
-        return {
-            "isNew": false
-        };
-    }
-}
-async function sendUpdate(channel, update) {
-    if (channel === undefined)
-        return console.error("[CSGO-UPDATE] Error al obtener el canal, no lo han configurado");
-    let language = getLanguage(channel);
-    await channel.send(`@everyone ${lang_1.lang[language].messages.newUpdate}`);
-    let card__actualizacion = new Discord.MessageEmbed()
-        .setColor('#0099ff')
-        .setTitle(`${lang_1.lang[language].messages.title_newUpdate} ${update.date}!`)
-        .setURL(update.link)
-        .setAuthor(config_1.bot_alias, 'https://i.imgur.com/ciQJQHK.png')
-        .setDescription(update.description)
-        .setTimestamp()
-        .setFooter('By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-    //Enviamos el mensaje a discord
-    try {
-        await channel.send({ embed: card__actualizacion })
-            .then(async (embedMessage) => {
-            await embedMessage.react('👍');
-            await embedMessage.react('👎');
-        });
-    }
-    catch (error) {
-        console.error('One of the emojis failed to react');
-    }
-}
+const lang_2 = require("./lang");
 /**
  * EVENTOS
  */
-client.on('ready', () => {
-    // This event will run if the bot starts, and logs in, successfully.
-    console.log(`El bot ha iniciado, con ${client.users.cache.size} usuarios, en ${client.channels.cache.size} canales en ${client.guilds.cache.size} guilds(grupos).`);
-    // Example of changing the bot's playing game to something useful. `client.user` is what the
-    // docs refer to as the "ClientUser".
-    client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
-        .catch(console.error);
-    if (!db.exists('/csgo_news')) {
-        db.push('/csgo_news', "", true);
-    }
-    function run() {
-        //Que se ejecute en todos los servidores :D
-        timers_1.setInterval(async function () {
-            console.log(`Buscando Actualizaciones de CSGO...`);
-            let update = await checkUpdate();
-            if (update["isNew"]) { //Si hay actualizacion enviar un mensaje a todos los servers
-                for (let i = 0; i < db.count("/Discord_Server"); i++) {
-                    let channel = client.guilds.cache.get(db.getData(`/Discord_Server[${i}]/GuildID`)).channels.cache.find(channel => channel.name === db.getData(`/Discord_Server[${i}]/config/channel_csgo_news`));
-                    await sendUpdate(channel, update);
-                }
-            }
-            else {
-                console.log("No hay actualizacion este momento");
-            }
-        }, 1500);
-        //console.log(db.getData('/535521222784712714'));
-    }
-    run();
-});
-client.on("guildCreate", (guild) => {
-    // This event triggers when the bot joins a guild.
-    console.log(`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`);
-    db.push('/Discord_Server[]', {
-        GuildID: guild.id,
-        GuildName: guild.name,
-        GuildAFKChannel: guild.afkChannel,
-        GuildAFKChannelID: guild.afkChannelID,
-        GuildBanner: guild.banner,
-        GuildRegion: guild.region,
-        GuildOwnerID: guild.ownerID,
-        config: {
-            channel_csgo_news: "",
-            language: "eng",
-            prefix: "!"
-        }
-    });
-    db.save();
-    client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
-        .catch(console.error);
-});
-client.on("guildDelete", (guild) => {
-    // this event triggers when the bot is removed from a guild.
-    console.log(`I have been removed from: ${guild.name} (id: ${guild.id})`);
-    db.delete(`/Discord_Server[${db.getIndex("/Discord_Server", guild.id, "GuildID")}]`);
-    db.save();
-    client.user.setActivity(`!help || v${config_1.version} | ${client.guilds.cache.size}`, { type: 'PLAYING' })
-        .then(presence => console.log(`Activity set to ${presence.activities[0].name}`))
-        .catch(console.error);
-});
-/*client.on("guildMemberAdd", member => {
+const ready_1 = require("./modules/events/ready");
+const guildCreate_1 = require("./modules/events/guildCreate");
+const guildDelete_1 = require("./modules/events/guildDelete");
+const error_1 = require("./modules/events/error");
+exports.client.on("ready", ready_1.onReady);
+exports.client.on("guildCreate", guildCreate_1.onGuildCreate);
+exports.client.on("guildDelete", guildDelete_1.onGuildDelete);
+exports.client.on("error", error_1.onError);
+/*
+client.on("guildMemberAdd", member => {
     // Le enviamos el mensaje de bienvenida
     const embed = new Discord.RichEmbed()
         .setTitle("¡Bienvenid@ al servidor!")
@@ -209,7 +58,6 @@ client.on("guildDelete", (guild) => {
             "https://i.imgur.com/cCeIJhL.png"
         );
     member.send(embed);
-
     /!* Le damos el rol de Académico *!/
     let guild = client.guilds.get("531116820669661185");
     let role = guild.roles.get("601472312524537895");
@@ -219,36 +67,7 @@ client.on("guildDelete", (guild) => {
 client.on("message", (message: Message) => {
     commandHandler.handleMessage(message);
 });*/
-client.on("error", (error) => {
-    console.error("Discord client error!", error);
-});
-function getLanguage(message, channel) {
-    var _a, _b;
-    if (message !== undefined) {
-        try {
-            // @ts-ignore
-            return db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", (_a = message.guild) === null || _a === void 0 ? void 0 : _a.id, "GuildID")}]/config/language`);
-        }
-        catch (error) {
-            console.log("Un error ocurrio al obtener el idioma");
-            return "eng";
-        }
-    }
-    else if (channel !== undefined) {
-        try {
-            return db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", (_b = channel.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/language`);
-        }
-        catch (error) {
-            console.log("Un error ocurrio al obtener el idioma");
-            return "eng";
-        }
-    }
-    else {
-        console.log("No ingreso ningun parametro devolviendo por default eng");
-        return "eng";
-    }
-}
-client.on('message', async (message) => {
+exports.client.on('message', async (message) => {
     var _a, _b, _c;
     // This event will run on every single message received, from any channel or DM.
     // It's good practice to ignore other bots. This also makes your bot ignore itself
@@ -257,15 +76,18 @@ client.on('message', async (message) => {
         return;
     // Also good practice to ignore any message that does not start with our prefix,
     // which is set in the configuration file.
-    if (!message.content.startsWith(`${config_1.prefix}`))
+    if (message.guild === null || message.guild === undefined)
+        return;
+    let prefix = exports.db.getData(`/Discord_Server[${exports.db.getIndex("/Discord_Server", message.guild.id, "GuildID")}]/config/prefix`);
+    if (!message.content.startsWith(`${prefix}`))
         return;
     // Here we separate our "command" name, and our "arguments" for the command.
     // e.g. if we have the message "+say Is this the real life?" , we'll get the following:
     // command = say
     // args = ["Is", "this", "the", "real", "life?"]
-    const args = message.content.slice(config_1.prefix.length).trim().split(/ +/g);
+    const args = message.content.slice(prefix.length).trim().split(/ +/g);
     const command = (_a = args === null || args === void 0 ? void 0 : args.shift()) === null || _a === void 0 ? void 0 : _a.toLowerCase();
-    let idioma = await getLanguage(message);
+    let idioma = await lang_2.getLanguage(message);
     async function usernameToSteamId(platformUserIdentifier, idioma, m) {
         if (!Number.isInteger(Number.parseInt(platformUserIdentifier)) && platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
             m.edit(`${lang_1.lang[idioma].messages.searching.replace("{user}", platformUserIdentifier)}`);
@@ -297,7 +119,7 @@ client.on('message', async (message) => {
             case "csgo_news_channel":
                 if (args[1]) {
                     // @ts-ignore
-                    db.push(`/Discord_Server[${db.getIndex("/Discord_Server", (_b = message.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/channel_csgo_news`, args[1]);
+                    exports.db.push(`/Discord_Server[${exports.db.getIndex("/Discord_Server", (_b = message.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/channel_csgo_news`, args[1]);
                     await message.reply(`De acuerdo, ahora dare mis noticias en ** ${args[1]}**`);
                 }
                 else {
@@ -313,7 +135,7 @@ client.on('message', async (message) => {
             return await message.channel.send("Solo el dueño del bot puede ejecutar este comando");
         switch (args[0]) {
             case "grupos":
-                await message.channel.send(`Actualmente el bot funciona en ${client.guilds.cache.size} servidores de discord.`);
+                await message.channel.send(`Actualmente el bot funciona en ${exports.client.guilds.cache.size} servidores de discord.`);
                 break;
             case "users":
                 console.log("2");
@@ -353,7 +175,7 @@ client.on('message', async (message) => {
         if (language === "esp" || language === "eng") {
             try {
                 // @ts-ignore
-                db.push(`/Discord_Server[${db.getIndex("/Discord_Server", (_c = message.guild) === null || _c === void 0 ? void 0 : _c.id, "GuildID")}]/config/language`, language, false);
+                exports.db.push(`/Discord_Server[${exports.db.getIndex("/Discord_Server", (_c = message.guild) === null || _c === void 0 ? void 0 : _c.id, "GuildID")}]/config/language`, language, false);
                 await message.reply(lang_1.lang[language].messages.languageMsg);
             }
             catch (error) {
@@ -389,7 +211,7 @@ client.on('message', async (message) => {
                     return message.reply(`${stats.errors[0].message}`);
                 }
                 await m.edit(`${lang_1.lang[idioma].messages.stats.replace("{user}", stats.data.platformInfo.platformUserHandle)}`);
-                const exampleEmbed = new Discord.MessageEmbed()
+                const exampleEmbed = new exports.Discord.MessageEmbed()
                     .setColor('#0099ff')
                     .setTitle(stats.data.platformInfo.platformUserHandle)
                     .setURL('https://steamcommunity.com/profiles/' + stats.data.platformInfo.platformUserId)
@@ -440,7 +262,7 @@ client.on('message', async (message) => {
             }
             else {
                 let vacBans = JSON.parse(body);
-                let cardVacBans = new Discord.MessageEmbed()
+                let cardVacBans = new exports.Discord.MessageEmbed()
                     .setColor('#0099ff')
                     .setTitle(vacBans.players[0].SteamId)
                     .setURL('https://steamcommunity.com/profiles/' + vacBans.players[0].SteamId)
@@ -545,7 +367,7 @@ client.on('message', async (message) => {
 });
 //let CommandPrueba = require('./commands/prueba');
 //CommandPrueba.run2(client);
-client.login(process.env.DISCORD_TOKEN);
+exports.client.login(process.env.DISCORD_TOKEN);
 //client.login(process.env.MY_TOKEN);
-module.exports = client;
+module.exports = exports.client;
 //# sourceMappingURL=bot.js.map

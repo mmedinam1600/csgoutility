@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.lang = void 0;
+exports.getLanguage = exports.lang = void 0;
+const bot_1 = require("./bot");
 exports.lang = {
     esp: {
         messages: {
@@ -93,4 +94,32 @@ exports.lang = {
         }
     }
 };
+async function getLanguage(message, channel) {
+    var _a, _b;
+    if (message !== undefined) {
+        try {
+            if (message.guild === null)
+                return "eng";
+            return await bot_1.db.getData(`/Discord_Server[${bot_1.db.getIndex("/Discord_Server", (_a = message.guild) === null || _a === void 0 ? void 0 : _a.id, "GuildID")}]/config/language`);
+        }
+        catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else if (channel !== undefined) {
+        try {
+            return await bot_1.db.getData(`/Discord_Server[${bot_1.db.getIndex("/Discord_Server", (_b = channel.guild) === null || _b === void 0 ? void 0 : _b.id, "GuildID")}]/config/language`);
+        }
+        catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else {
+        console.log("No ingreso ningun parametro devolviendo por default eng");
+        return "eng";
+    }
+}
+exports.getLanguage = getLanguage;
 //# sourceMappingURL=lang.js.map

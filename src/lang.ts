@@ -1,3 +1,6 @@
+import {Message} from "discord.js";
+import {db} from "./bot";
+
 type messageCode = {
     usage?: { stats?: string, check?: string},  analyzing?: string, searching?: string, errorID?: string, notFound?: string, obtained?: string,
     error?: string, stats?: string, country?: string, timePlayed?: string, score?: string, kills?: string, deaths?: string,
@@ -108,5 +111,29 @@ export const lang: Mensaje = {
             description_newUpdate: "Click on the link above for more information"
 
         }
+    }
+}
+
+export async function getLanguage(message?: Message, channel?): Promise<string> {
+    if(message !== undefined) {
+        try {
+            if(message.guild === null) return "eng";
+            return await db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild?.id,"GuildID")}]/config/language`)
+        } catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else if(channel !== undefined){
+        try {
+            return await db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", channel.guild?.id,"GuildID")}]/config/language`)
+        } catch (error) {
+            console.log("Un error ocurrio al obtener el idioma");
+            return "eng";
+        }
+    }
+    else{
+        console.log("No ingreso ningun parametro devolviendo por default eng");
+        return "eng";
     }
 }
