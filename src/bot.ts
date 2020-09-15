@@ -94,9 +94,11 @@ client.on('message', async (message:Message) => {
     // and not get into a spam loop (we call that "botception").
     if (message.author.bot) return;
 
+    //Si le mandan un DM, ignore los mensajes
+    if(!message.guild) return;
+
     // Also good practice to ignore any message that does not start with our prefix,
     // which is set in the configuration file.
-    if(message.guild === null || message.guild === undefined) return;
     let prefix = db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild.id,"GuildID")}]/config/prefix`)
     if (!message.content.startsWith(`${prefix}`)) return;
 
@@ -108,25 +110,37 @@ client.on('message', async (message:Message) => {
     const command: string | undefined = args?.shift()?.toLowerCase();
     let idioma = await getLanguage(message);
 
-    async function usernameToSteamId(platformUserIdentifier, idioma, m) {
-        if( !Number.isInteger(Number.parseInt(platformUserIdentifier)) && platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
-            m.edit(`${lang[idioma].messages.searching.replace("{user}",platformUserIdentifier)}`);
-            let html = await requestHTML.get(`https://steamidfinder.com/lookup/${platformUserIdentifier}`)
-                .catch(() => {
-                    return console.error(`${lang[idioma].messages.errorID}`);
-                });
-            console.log("Haciendo consulta")
-            let dom = parser.parseFromString(html,"text/html");
-            if (dom.rawHTML == undefined){
-                console.log("No se pudo obtener el html. Puede que el usuario que ingresaron no existe");
-                return m.edit(`${lang[idioma].messages.notFound.replace("{user}", platformUserIdentifier)}`);
-            }
-            console.log("Consulta exitosa")
-            platformUserIdentifier = dom.getElementsByName('refresh')[0].getAttribute('value');
-            console.log(platformUserIdentifier);
-            return platformUserIdentifier;
+
+    async function obtainSteamID(platformUserIdentifier, m, idioma){
+        let html = await requestHTML.get(`https://steamidfinder.com/lookup/${platformUserIdentifier}`)
+            .catch(() => {
+                return console.error(`${lang[idioma].messages.errorID}`);
+            });
+        console.log("Haciendo consulta")
+        let dom = parser.parseFromString(html,"text/html");
+        if (dom.rawHTML == undefined){
+            console.log("No se pudo obtener el html. Puede que el usuario que ingresaron no existe");
+            m.edit(`${lang[idioma].messages.notFound.replace("{user}", platformUserIdentifier)}`)
+            return console.error("El usuario no existe");
         }
+        console.log("Consulta exitosa")
+        platformUserIdentifier = dom.getElementsByName('refresh')[0].getAttribute('value');
+        console.log(platformUserIdentifier);
         return platformUserIdentifier;
+    }
+
+    async function usernameToSteamId(platformUserIdentifier, idioma, m) {
+        if( platformUserIdentifier.length != 17) { //Si no son numeros y no mide 17 caracteres
+            m.edit(`${lang[idioma].messages.searching.replace("{user}",platformUserIdentifier)}`);
+            return obtainSteamID(platformUserIdentifier, m, idioma);
+        } else {
+            if(isNaN(platformUserIdentifier)){
+                return obtainSteamID(platformUserIdentifier, m, idioma);
+            }
+            else{
+                return platformUserIdentifier;
+            }
+        }
     }
 
     //*********************************************************************************************************************
@@ -219,25 +233,27 @@ client.on('message', async (message:Message) => {
     }
 
     if(command === "stats") {
+
+        //Obtenemos el steamID
         let platformUserIdentifier = args[0];
-        if (!platformUserIdentifier)
-            return message.reply(`${lang[idioma].messages.usage.stats}`);
+        if (!platformUserIdentifier) return message.reply(`${lang[idioma].messages.usage.stats}`);
+
         let platform = 'steam';
         let headers = {
             'TRN-Api-Key': process.env.API_KEY,
             'Accept': 'application/json',
             //'Accept-Encoding': 'gzip'
         };
+
         let m = await message.channel.send(`${lang[idioma].messages.analyzing} ${platformUserIdentifier}`);
 
-        platformUserIdentifier =  await usernameToSteamId(platformUserIdentifier, idioma, m)
+        platformUserIdentifier =  await usernameToSteamId(platformUserIdentifier, idioma, m);
 
         await m.edit(`${lang[idioma].messages.obtained.replace("{id}", platformUserIdentifier)}`);
+
         let url = `https://public-api.tracker.gg/v2/csgo/standard/profile/${platform}/${platformUserIdentifier}`;
         request.get({headers: headers, url: url, method: 'GET'} , async function (err,res,body) {
-            if(err){
-                await message.reply(`${lang[idioma].messages.error}`);
-            }
+            if(err) await message.reply(`${lang[idioma].messages.error}`);
             else {
                 let stats = JSON.parse(body);
                 //console.log(stats);
@@ -263,6 +279,97 @@ client.on('message', async (message:Message) => {
             //message.reply(`Username: ${stats.data.platformInfo.platformUserHandle}`);
             //message.reply(``);
         });
+    }
+
+    if(command === "logros") {
+        let steamID = args[0];
+        if(!steamID) return message.reply('No ingresaste ningun nombre/steamID');
+        let mensaje = await message.channel.send('Calculando steamID');
+        steamID =  await usernameToSteamId(steamID, idioma, mensaje);
+        if(!steamID || steamID.length !== 17) return;
+        let url = `http://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/?appid=730&key=${process.env.WEB_API_STEAM}&steamid=${steamID}`;
+        let html = await requestHTML.get({url: url, method: 'GET'})
+            .catch( function (error) {
+                if(error.statusCode === 403){
+                    mensaje.edit('Error catastrofico (El perfil es privado)');
+                } else{
+                    mensaje.edit('Error catastrofico (Revisa que escribiste bien el steamID)');
+                }
+            })
+        if(!html) return console.log('Error al hacer la consulta (Comando logros)')
+        let logros = JSON.parse(html);
+        let listaLogros = Object.keys(logros.playerstats.achievements)
+        //console.log(listaLogros)
+        let numberOfAchievements = 0;
+        let achievements = "";
+        for (let keyLogros in listaLogros){
+            //console.log(`✅ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`)
+            if(logros.playerstats.achievements[keyLogros].achieved){
+                numberOfAchievements++;
+                achievements = achievements + `✅ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`
+            }
+            else{
+                achievements = achievements + `❌ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`
+            }
+            //console.log(logros.playerstats.achievements[keyLogros].apiname);
+        }
+        const embedAchievements = new Discord.MessageEmbed()
+            .setColor('#ff04e4')
+            .setTitle(`Logros ${numberOfAchievements}/${listaLogros.length}`)
+            .setURL(`https://steamcommunity.com/profiles/${logros.playerstats.steamID}/stats/CSGO`)
+            .setAuthor('CSGO Utility v2.0', 'https://cdn.discordapp.com/avatars/731233586912559217/6f2a6e5f30fdfc9b0a49763d17c69c5e.png', 'http://cubeprohost.com:8080')
+            .setThumbnail('https://i.imgur.com/7Ex3AIa.png')
+            .setTimestamp();
+        //await message.channel.send(embedAchievements);
+        //await mensaje.edit(`Tienes ${numberOfAchievements} / ${listaLogros.length}`);
+        if(args[1] === "1" || !args[1]){
+            let achievements1 = achievements.slice(0,1923);
+            embedAchievements
+                .setDescription(achievements1)
+                .setFooter('Pagina 1/5', 'https://i.imgur.com/wSTFkRM.png');
+            await message.channel.send(embedAchievements);
+            //await message.channel.send("Pagina 1/4\n" + achievements1);
+        }
+        else if(args[1] === "2"){
+            let achievements2 = achievements.slice(1923, 3849);
+            embedAchievements
+                .setDescription(achievements2)
+                .setFooter('Pagina 2/5', 'https://i.imgur.com/wSTFkRM.png');
+            await message.channel.send(embedAchievements);
+            //await message.channel.send(achievements2);
+        }
+        else if(args[1] === "3"){
+            let achievements3 = achievements.slice(3849, 5849);
+            embedAchievements
+                .setDescription(achievements3)
+                .setFooter('Pagina 3/5', 'https://i.imgur.com/wSTFkRM.png');
+            await message.channel.send(embedAchievements);
+            //await message.channel.send(achievements3);
+        }
+        else if(args[1] === "4"){
+            let achievements4 = achievements.slice(5849, 7819);
+            embedAchievements
+                .setDescription(achievements4)
+                .setFooter('Pagina 4/5', 'https://i.imgur.com/wSTFkRM.png');
+            await message.channel.send(embedAchievements);
+            //await message.channel.send(achievements4);
+        }
+        else if(args[1] === "5"){
+            let achievements5 = achievements.slice(7819);
+            embedAchievements
+                .setDescription(achievements5)
+                .setFooter('Pagina 5/5', 'https://i.imgur.com/wSTFkRM.png');
+            await message.channel.send(embedAchievements);
+            //await message.channel.send(achievements4);
+        }
+        /*else{
+            let achievements1 = achievements.slice(0,1923);
+            embedAchievements
+                .setDescription(achievements1)
+                .setFooter('Pagina 1/4', 'https://i.imgur.com/wSTFkRM.png');
+            await message.channel.send(embedAchievements);
+            //await message.channel.send(achievements1);
+        }*/
     }
 
 
