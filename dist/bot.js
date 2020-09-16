@@ -68,7 +68,7 @@ client.on("message", (message: Message) => {
     commandHandler.handleMessage(message);
 });*/
 exports.client.on('message', async (message) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     // This event will run on every single message received, from any channel or DM.
     // It's good practice to ignore other bots. This also makes your bot ignore itself
     // and not get into a spam loop (we call that "botception").
@@ -124,7 +124,10 @@ exports.client.on('message', async (message) => {
     //********************************* COMMANDS *************************************************
     //*********************************************************************************************************************
     if (command === "help") {
-        await message.reply(lang_1.lang[idioma].messages.help);
+        let help = lang_1.lang[idioma].messages.help;
+        let prefix = exports.db.getData(`/Discord_Server[${exports.db.getIndex("/Discord_Server", message.guild.id, "GuildID")}]/config/prefix`);
+        help = help.replace(/{prefix}/g, prefix);
+        await message.reply(help);
     }
     if (command === "config") {
         switch (args[0]) {
@@ -241,6 +244,13 @@ exports.client.on('message', async (message) => {
             //message.reply(`Username: ${stats.data.platformInfo.platformUserHandle}`);
             //message.reply(``);
         });
+    }
+    if (command === "prefix") {
+        if (!args[0])
+            return await message.channel.send(`Uso: !prefix \<prefijo\>`);
+        let prefix = args[0];
+        exports.db.push(`/Discord_Server[${exports.db.getIndex("/Discord_Server", (_d = message.guild) === null || _d === void 0 ? void 0 : _d.id, "GuildID")}]/config/prefix`, prefix, false);
+        await message.channel.send(`Prefijo cambiado con exito! Nuevo: **${prefix}**`);
     }
     if (command === "logros") {
         let steamID = args[0];

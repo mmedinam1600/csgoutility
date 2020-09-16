@@ -148,7 +148,10 @@ client.on('message', async (message:Message) => {
     //*********************************************************************************************************************
 
     if (command === "help") {
-        await message.reply(lang[idioma].messages.help);
+        let help = lang[idioma].messages.help;
+        let prefix = db.getData(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild.id,"GuildID")}]/config/prefix`)
+        help = help.replace(/{prefix}/g, prefix);
+        await message.reply(help);
     }
 
     if(command === "config"){
@@ -279,6 +282,13 @@ client.on('message', async (message:Message) => {
             //message.reply(`Username: ${stats.data.platformInfo.platformUserHandle}`);
             //message.reply(``);
         });
+    }
+
+    if(command === "prefix"){
+        if(!args[0]) return await message.channel.send(`Uso: !prefix \<prefijo\>`)
+        let prefix = args[0];
+        db.push(`/Discord_Server[${db.getIndex("/Discord_Server", message.guild?.id,"GuildID")}]/config/prefix`, prefix, false);
+        await message.channel.send(`Prefijo cambiado con exito! Nuevo: **${prefix}**`);
     }
 
     if(command === "logros") {

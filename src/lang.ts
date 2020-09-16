@@ -11,6 +11,15 @@ type messageCode = {
     title_newUpdate?: string, description_newUpdate?: string, WIN_BOMB_PLANT?: object
 }
 
+let commands = ["**{prefix}help** - Muestra los comandos disponibles",
+    "**{prefix}config csgo_news_channel [canal]** - Configura el bot de noticias de CSGO",
+    "**{prefix}language** - Cambia el idioma del bot",
+    "**{prefix}stats [usuario/steamID]** - Consulta las estadisticas de CSGO de alguna cuenta",
+    "**{prefix}prefix [prefijo]** - Cambia el prefijo del bot",
+    "**{prefix}logros [usuario/steamID] *(pagina)*** - Consulta los logros de CSGO de alguna cuenta",
+    "**{prefix}vac [usuario/steamID]** - Consulta el estado de vac de alguna cuenta",
+]
+
 type Mensaje = {
     esp:{
         messages: messageCode
@@ -60,7 +69,7 @@ export const lang = {
             headshotPct: "Porcentaje de Disparos a la Cabeza",
             languageMsg: "Ahora respondere los mensajes en español",
             statsTitle: "Estadisticas de CSGO",
-            help: "Comandos Disponibles: \n\n**!help** - Muestra el menú de ayuda\n**!language** *[opción]* - Cambia el idioma del bot. Opciones: esp, eng\n**!stats** *[usuario / steamID]* - Consulta las estadisticas de un jugador\n!vac [usuario / SteamID] Consulta el estado de VAC de un jugador",
+            help: `Comandos Disponibles: \n\n${commands[0]}\n${commands[1]}\n${commands[2]}\n${commands[3]}\n${commands[4]}\n${commands[5]}\n${commands[6]}`,
             newUpdate: "Una nueva actualizacion de Counter Strike Global Offensive ha salido!",
             title_newUpdate: "Notas de publicación del",
             description_newUpdate: "Click en el link de arriba para mas información",
@@ -774,7 +783,7 @@ export const lang = {
             headshotPct: "HeadShot Percentage:",
             languageMsg: "I will now answer messages in English",
             statsTitle: "Stats of CSGO",
-            help: "Available Commands: \n\n!help - Displays the help menu\n!language [option] - Change the language of the bot. Options: esp, eng\n!stats [user / steamID] - Check a player's statistics\n!vac [user / SteamID] Check the VAC status of a player",
+            help: "Available Commands: \n\n!help - Displays the help menu\n!language [option] - Change the language of the bot. Options: esp, eng\n!stats [user / steamID] - Check a player's statistics\n!vac [user / SteamID] Check the VAC status of a player\n",
             newUpdate: "A new update of Counter Strike Global Offensive is out!",
             title_newUpdate: "Release Notes for",
             description_newUpdate: "Click on the link above for more information",
