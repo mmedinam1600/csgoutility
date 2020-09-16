@@ -14,10 +14,10 @@ type messageCode = {
 let commands = ["**{prefix}help** - Muestra los comandos disponibles",
     "**{prefix}config csgo_news_channel [canal]** - Configura el bot de noticias de CSGO",
     "**{prefix}language** - Cambia el idioma del bot",
-    "**{prefix}stats [usuario/steamID]** - Consulta las estadisticas de CSGO de alguna cuenta",
+    "**{prefix}stats [usuario/steamID]** - Consulta las estadísticas de CSGO de alguna cuenta",
     "**{prefix}prefix [prefijo]** - Cambia el prefijo del bot",
-    "**{prefix}logros [usuario/steamID] *(pagina)*** - Consulta los logros de CSGO de alguna cuenta",
-    "**{prefix}vac [usuario/steamID]** - Consulta el estado de vac de alguna cuenta",
+    "**{prefix}logros [usuario/steamID] *(página)*** - Consulta los logros de CSGO de alguna cuenta",
+    "**{prefix}vac [usuario/steamID]** - Consulta el estado de *VAC* de alguna cuenta",
 ]
 
 type Mensaje = {
