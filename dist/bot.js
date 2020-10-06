@@ -291,56 +291,6 @@ exports.client.on('message', async (message) => {
             }
             //console.log(logros.playerstats.achievements[keyLogros].apiname);
         }
-<<<<<<< HEAD
-        const embedAchievements = new exports.Discord.MessageEmbed()
-            .setColor('#ff04e4')
-            .setTitle(`Logros ${numberOfAchievements}/${listaLogros.length}`)
-            .setURL(`https://steamcommunity.com/profiles/${logros.playerstats.steamID}/stats/CSGO`)
-            .setAuthor('CSGO Utility v2.0', 'https://cdn.discordapp.com/avatars/731233586912559217/6f2a6e5f30fdfc9b0a49763d17c69c5e.png', 'http://cubeprohost.com:8080')
-            .setThumbnail('https://i.imgur.com/7Ex3AIa.png')
-            .setTimestamp();
-        //await message.channel.send(embedAchievements);
-        //await mensaje.edit(`Tienes ${numberOfAchievements} / ${listaLogros.length}`);
-        if (args[1] === "1" || !args[1]) {
-            let achievements1 = achievements.slice(0, 1923);
-            embedAchievements
-                .setDescription(achievements1)
-                .setFooter('Pagina 1/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await message.channel.send(embedAchievements);
-            //await message.channel.send("Pagina 1/4\n" + achievements1);
-        }
-        else if (args[1] === "2") {
-            let achievements2 = achievements.slice(1923, 3849);
-            embedAchievements
-                .setDescription(achievements2)
-                .setFooter('Pagina 2/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await message.channel.send(embedAchievements);
-            //await message.channel.send(achievements2);
-        }
-        else if (args[1] === "3") {
-            let achievements3 = achievements.slice(3849, 5849);
-            embedAchievements
-                .setDescription(achievements3)
-                .setFooter('Pagina 3/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await message.channel.send(embedAchievements);
-            //await message.channel.send(achievements3);
-        }
-        else if (args[1] === "4") {
-            let achievements4 = achievements.slice(5849, 7819);
-            embedAchievements
-                .setDescription(achievements4)
-                .setFooter('Pagina 4/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await message.channel.send(embedAchievements);
-            //await message.channel.send(achievements4);
-        }
-        else if (args[1] === "5") {
-            let achievements5 = achievements.slice(7819);
-            embedAchievements
-                .setDescription(achievements5)
-                .setFooter('Pagina 5/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
-            await message.channel.send(embedAchievements);
-            //await message.channel.send(achievements4);
-=======
         let GenerateEmbed = async (page = 1) => {
             const embedAchievements = new exports.Discord.MessageEmbed()
                 .setColor('#ff04e4')
@@ -410,7 +360,6 @@ exports.client.on('message', async (message) => {
         }
         catch (error) {
             console.error('One of the emojis failed to react');
->>>>>>> 01ccb41083f2e737db311109b1411e8bd7a36c14
         }
         /*else{
             let achievements1 = achievements.slice(0,1923);
