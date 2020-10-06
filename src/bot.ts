@@ -16,7 +16,7 @@ import { Estadisticas } from "./Estadisticas";
  */
 export const Discord = require('discord.js'); /** IMPORTAMOS EL MODULO */
 export const client = new Discord.Client(); /** CREAMOS UN CLIENTE PARA EL BOT */
-import {Message, Guild, Channel} from 'discord.js'; /** IMPORTAMOS LAS CLASES QUE USAREMOS PARA EL AUTOCOMPLETADO */
+import {Message, Guild, Channel, MessageEmbed} from 'discord.js'; /** IMPORTAMOS LAS CLASES QUE USAREMOS PARA EL AUTOCOMPLETADO */
 
 /**
  * BASE DE DATOS
@@ -316,18 +316,21 @@ client.on('message', async (message:Message) => {
         let listaLogros = Object.keys(logros.playerstats.achievements)
         //console.log(listaLogros)
         let numberOfAchievements = 0;
-        let achievements = "";
+        let achievements: Array<string> = [];
         for (let keyLogros in listaLogros){
             //console.log(`✅ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`)
             if(logros.playerstats.achievements[keyLogros].achieved){
+                achievements.push(`✅ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}`);
                 numberOfAchievements++;
-                achievements = achievements + `✅ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`
+                //achievements = achievements + `✅ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`
             }
             else{
-                achievements = achievements + `❌ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`
+                achievements.push(`❌ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}`)
+                //achievements = achievements + `❌ ${lang[idioma].messages[logros.playerstats.achievements[keyLogros].apiname].text1}\n`
             }
             //console.log(logros.playerstats.achievements[keyLogros].apiname);
         }
+<<<<<<< HEAD
         const embedAchievements = new Discord.MessageEmbed()
             .setColor('#ff04e4')
             .setTitle(`Logros ${numberOfAchievements}/${listaLogros.length}`)
@@ -376,6 +379,75 @@ client.on('message', async (message:Message) => {
                 .setFooter('Pagina 5/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements4);
+=======
+
+        let GenerateEmbed = async (page: number = 1): Promise<MessageEmbed> => {
+            const embedAchievements = new Discord.MessageEmbed()
+                .setColor('#ff04e4')
+                .setTitle(`Logros ${numberOfAchievements}/${listaLogros.length}`)
+                .setURL(`https://steamcommunity.com/profiles/${logros.playerstats.steamID}/stats/CSGO`)
+                .setAuthor('CSGO Utility v2.0', 'https://cdn.discordapp.com/avatars/731233586912559217/6f2a6e5f30fdfc9b0a49763d17c69c5e.png', 'http://cubeprohost.com:8080')
+                .setThumbnail('https://i.imgur.com/7Ex3AIa.png')
+                .setTimestamp();
+            let maxPage = Math.round(achievements.length / 10);
+            let tenAchievements = "";
+            if (page > 0 && page <= maxPage) {
+                let index: number = page;
+                page === 1 ? index = 0 : index = (index * 10) - 10;
+                for (let i = index; i < index + 10; i++) {
+                    if(!achievements[i]) break;
+                    tenAchievements += achievements[i] + "\n";
+                }
+                embedAchievements
+                    .setDescription(tenAchievements)
+                    .setFooter(`Página ${page}/${maxPage}`, 'https://i.imgur.com/wSTFkRM.png')
+                return(embedAchievements)
+            } else {
+                embedAchievements
+                    .setDescription('La página que ingresaste es incorrecta')
+                    .setFooter(`Página ${page}/${maxPage}`, 'https://i.imgur.com/wSTFkRM.png')
+                return(embedAchievements)
+            }
+        }
+
+        try{
+            let currentIndex: number;
+            args[1] === undefined ? currentIndex = 1 : currentIndex = parseInt(args[1]);
+            await message.channel.send({embed: await GenerateEmbed(currentIndex)})
+                .then(async embedMessage => {
+                    if(currentIndex > 1 ) await embedMessage.react('⬅️')
+                    if (currentIndex < 17) await embedMessage.react('➡️')
+                    const author = message.author
+                    const collector = embedMessage.createReactionCollector(
+                        // only collect left and right arrow reactions from the message author
+                        (reaction, user) => ['⬅️', '➡️'].includes(reaction.emoji.name) && user.id === author.id,
+                        // time out after a minute
+                        {time: 180000}
+                    )
+                    collector.on('collect', reaction => {
+                        // remove the existing reactions
+                        embedMessage.reactions.removeAll().then(async () => {
+                            // increase/decrease index
+                            reaction.emoji.name === '⬅️' ? currentIndex -= 1 : currentIndex += 1
+                            // edit message with new embed
+                            if(reaction.emoji.name === '➡️' && currentIndex <= 17){
+                                await embedMessage.edit(await GenerateEmbed(currentIndex))
+                            }
+                            if( reaction.emoji.name === '⬅️' && currentIndex >= 1 ){
+                                await embedMessage.edit(await GenerateEmbed(currentIndex))
+                            }
+                            // react with left arrow if it isn't the start (await is used so that the right arrow always goes after the left)
+                            if(currentIndex > 1 ) await embedMessage.react('⬅️')
+                            // react with right arrow if it isn't the end
+                            if (currentIndex < 17) await embedMessage.react('➡️')
+                        })
+                    })
+
+                });
+        }
+        catch (error){
+            console.error('One of the emojis failed to react');
+>>>>>>> 01ccb41083f2e737db311109b1411e8bd7a36c14
         }
         /*else{
             let achievements1 = achievements.slice(0,1923);
@@ -385,6 +457,57 @@ client.on('message', async (message:Message) => {
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements1);
         }*/
+    }
+
+    if(command === "prueba"){
+        const guilds = client.guilds.cache.array()
+
+        /**
+         * Creates an embed with guilds starting from an index.
+         * @param {number} start The index to start from.
+         */
+        const generateEmbed = start => {
+            const current = guilds.slice(start, start + 10)
+
+            // you can of course customise this embed however you want
+            const embed = new MessageEmbed()
+                .setTitle(`Showing guilds ${start + 1}-${start + current.length} out of ${guilds.length}`)
+            current.forEach(g => embed.addField(g.name, `**ID:** ${g.id}
+**Owner:** ${g.owner.user.tag}`))
+            return embed
+        }
+
+// edit: you can store the message author like this:
+        const author = message.author
+
+// send the embed with the first 10 guilds
+        message.channel.send(generateEmbed(0)).then(message => {
+            // exit if there is only one page of guilds (no need for all of this)
+            if (guilds.length <= 2) return
+            // react with the right arrow (so that the user can click it) (left arrow isn't needed because it is the start)
+            message.react('➡️')
+            const collector = message.createReactionCollector(
+                // only collect left and right arrow reactions from the message author
+                (reaction, user) => ['⬅️', '➡️'].includes(reaction.emoji.name) && user.id === author.id,
+                // time out after a minute
+                {time: 60000}
+            )
+
+            let currentIndex = 0
+            collector.on('collect', reaction => {
+                // remove the existing reactions
+                message.reactions.removeAll().then(async () => {
+                    // increase/decrease index
+                    reaction.emoji.name === '⬅️' ? currentIndex -= 10 : currentIndex += 10
+                    // edit message with new embed
+                    message.edit(generateEmbed(currentIndex))
+                    // react with left arrow if it isn't the start (await is used so that the right arrow always goes after the left)
+                    if (currentIndex !== 0) await message.react('⬅️')
+                    // react with right arrow if it isn't the end
+                    if (currentIndex + 10 < guilds.length) message.react('➡️')
+                })
+            })
+        })
     }
 
 
