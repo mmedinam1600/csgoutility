@@ -62,6 +62,9 @@ client.on("guildCreate", onGuildCreate);
 client.on("guildDelete", onGuildDelete);
 client.on("error", onError);
 
+
+
+
 /*
 client.on("guildMemberAdd", member => {
     // Le enviamos el mensaje de bienvenida
@@ -110,7 +113,6 @@ client.on('message', async (message:Message) => {
     const command: string | undefined = args?.shift()?.toLowerCase();
     let idioma = await getLanguage(message);
 
-
     async function obtainSteamID(platformUserIdentifier, m, idioma){
         let html = await requestHTML.get(`https://steamidfinder.com/lookup/${platformUserIdentifier}`)
             .catch(() => {
@@ -146,6 +148,7 @@ client.on('message', async (message:Message) => {
     //*********************************************************************************************************************
     //********************************* COMMANDS *************************************************
     //*********************************************************************************************************************
+
 
     if (command === "help") {
         let help = lang[idioma].messages.help;
@@ -306,6 +309,8 @@ client.on('message', async (message:Message) => {
                     mensaje.edit('Error catastrofico (Revisa que escribiste bien el steamID)');
                 }
             })
+
+
         if(!html) return console.log('Error al hacer la consulta (Comando logros)')
         let logros = JSON.parse(html);
         let listaLogros = Object.keys(logros.playerstats.achievements)
@@ -336,7 +341,7 @@ client.on('message', async (message:Message) => {
             let achievements1 = achievements.slice(0,1923);
             embedAchievements
                 .setDescription(achievements1)
-                .setFooter('Pagina 1/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 1/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send("Pagina 1/4\n" + achievements1);
         }
@@ -344,7 +349,7 @@ client.on('message', async (message:Message) => {
             let achievements2 = achievements.slice(1923, 3849);
             embedAchievements
                 .setDescription(achievements2)
-                .setFooter('Pagina 2/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 2/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements2);
         }
@@ -352,7 +357,7 @@ client.on('message', async (message:Message) => {
             let achievements3 = achievements.slice(3849, 5849);
             embedAchievements
                 .setDescription(achievements3)
-                .setFooter('Pagina 3/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 3/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements3);
         }
@@ -360,7 +365,7 @@ client.on('message', async (message:Message) => {
             let achievements4 = achievements.slice(5849, 7819);
             embedAchievements
                 .setDescription(achievements4)
-                .setFooter('Pagina 4/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 4/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements4);
         }
@@ -368,7 +373,7 @@ client.on('message', async (message:Message) => {
             let achievements5 = achievements.slice(7819);
             embedAchievements
                 .setDescription(achievements5)
-                .setFooter('Pagina 5/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 5/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements4);
         }

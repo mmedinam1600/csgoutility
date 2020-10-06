@@ -15,7 +15,7 @@ function onGuildCreate(guild) {
         GuildRegion: guild.region,
         GuildOwnerID: guild.ownerID,
         config: {
-            channel_csgo_news: "",
+            channel_csgo_news: "general",
             language: "eng",
             prefix: "!"
         }

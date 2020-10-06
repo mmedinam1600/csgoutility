@@ -301,7 +301,7 @@ exports.client.on('message', async (message) => {
             let achievements1 = achievements.slice(0, 1923);
             embedAchievements
                 .setDescription(achievements1)
-                .setFooter('Pagina 1/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 1/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send("Pagina 1/4\n" + achievements1);
         }
@@ -309,7 +309,7 @@ exports.client.on('message', async (message) => {
             let achievements2 = achievements.slice(1923, 3849);
             embedAchievements
                 .setDescription(achievements2)
-                .setFooter('Pagina 2/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 2/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements2);
         }
@@ -317,7 +317,7 @@ exports.client.on('message', async (message) => {
             let achievements3 = achievements.slice(3849, 5849);
             embedAchievements
                 .setDescription(achievements3)
-                .setFooter('Pagina 3/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 3/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements3);
         }
@@ -325,7 +325,7 @@ exports.client.on('message', async (message) => {
             let achievements4 = achievements.slice(5849, 7819);
             embedAchievements
                 .setDescription(achievements4)
-                .setFooter('Pagina 4/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 4/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements4);
         }
@@ -333,7 +333,7 @@ exports.client.on('message', async (message) => {
             let achievements5 = achievements.slice(7819);
             embedAchievements
                 .setDescription(achievements5)
-                .setFooter('Pagina 5/5', 'https://i.imgur.com/wSTFkRM.png');
+                .setFooter('Pagina 5/5 • By ElCapiPrice', 'https://i.imgur.com/cCeIJhL.png');
             await message.channel.send(embedAchievements);
             //await message.channel.send(achievements4);
         }
